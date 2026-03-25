@@ -18,7 +18,6 @@ with lib; let
 in {
   imports = [
     ./users
-    ./karabiner.nix
     ./alttab.nix
   ];
 
@@ -62,6 +61,10 @@ in {
       };
 
       programs.zsh.enable = true;
+
+      # Use nix-darwin built-in service modules instead of manual launchd agents
+      services.karabiner-elements.enable = true;
+      services.aerospace.enable = true;
     }
     (mkIf screenSharingCfg.enable {
       assertions = [

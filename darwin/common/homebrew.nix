@@ -1,5 +1,5 @@
 # Homebrew on macOS: declarative management of casks, formulae, and Mac App Store apps.
-# Karabiner-Elements needs Accessibility + Input Monitoring permissions (unsuitable for nixpkgs).
+# Aerospace and Karabiner-Elements are managed by nix-darwin services, not Homebrew.
 # Ghostty has no nixpkgs macOS build; config is shared via home/features/cli/ghostty.nix.
 # onActivation.cleanup = "zap" removes anything not declared here -- add before installing.
 {...}: {
@@ -7,17 +7,12 @@
     enable = true;
     onActivation.cleanup = "zap";
 
-    taps = [
-      "nikitabobko/tap" # Aerospace tiling WM
-    ];
-
     brews = [
       "mas" # Mac App Store CLI (used by masApps below)
       "tdd-guard" # TDD file watcher (not in nixpkgs)
     ];
 
     casks = [
-      "nikitabobko/tap/aerospace" # Tiling window manager (i3/Hyprland-like)
       "audacity" # Audio editor
       "alt-tab" # Alt+Tab-style app switcher on macOS
       "chatgpt" # OpenAI ChatGPT desktop app
@@ -25,7 +20,7 @@
       "codex" # OpenAI Codex desktop app
       "ghostty" # Terminal emulator (no nixpkgs macOS build)
       "google-chrome" # Chromium replacement on macOS (nixpkgs chromium unavailable on aarch64-darwin)
-      "karabiner-elements" # Keyboard remapping (requires system-level accessibility access)
+      # karabiner-elements now managed by services.karabiner-elements in nix-darwin
       "logitech-g-hub" # Logitech peripheral management
       "raycast" # Launcher / productivity tool
       "spotify" # Music streaming

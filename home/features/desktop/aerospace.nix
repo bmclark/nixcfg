@@ -1,4 +1,4 @@
-# Aerospace tiling window manager for macOS.
+# Aerospace tiling window manager for macOS (config only; service managed by nix-darwin).
 # Keybindings mirror Hyprland (Linux) using Hyper (Ctrl+Alt+Cmd via Karabiner).
 {
   config,
@@ -11,7 +11,7 @@ with lib; let
   kb = import ./keybindings.nix;
   workspaceNames = map toString (range 1 10);
   persistentWorkspaces = workspaceNames ++ ["S"];
-  aerospaceBin = "/opt/homebrew/bin/aerospace";
+  aerospaceBin = "${pkgs.aerospace}/bin/aerospace";
   workspaceCycleNext = pkgs.writeShellApplication {
     name = "aerospace-workspace-next";
     text = ''
@@ -87,7 +87,7 @@ in {
         # Mirrors Hyprland keybindings via shared keybindings.nix
 
         config-version = 2
-        start-at-login = true
+        start-at-login = false  # Managed by nix-darwin services.aerospace
         after-login-command = []
         after-startup-command = []
         persistent-workspaces = [${concatMapStringsSep ", " (ws: "'${ws}'") persistentWorkspaces}]
