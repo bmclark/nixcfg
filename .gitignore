@@ -21,6 +21,10 @@
 *.swo
 *~
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # Local databases and logs
 *.sqlite
 *.sqlite3

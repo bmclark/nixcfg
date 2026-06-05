@@ -1,0 +1,8 @@
+{
+  "db_path": "$HERMES_HOME/sqlite_vec_memory.db",
+  "embedding_dim": 384,
+  "top_k": 5,
+  "max_distance": 1.35,
+  "auto_capture": false,
+  "capture_delegations": false
+}

@@ -33,6 +33,24 @@
     pinentry.package = if pkgs.stdenv.isDarwin then pkgs.pinentry_mac else pkgs.pinentry-curses;
   };
 
+  # Hermes local vector memory support. Runtime data stays under ~/.hermes;
+  # Nix manages only the plugin source, non-secret defaults, and sqlite-vec deps.
+  home.sessionVariables.SQLITE_VEC_EXTENSION =
+    "${pkgs."sqlite-vec"}/lib/vec0.${if pkgs.stdenv.isDarwin then "dylib" else "so"}";
+
+  home.file.".hermes/plugins/sqlite_vec/__init__.py" = {
+    source = ./hermes/sqlite_vec/__init__.py;
+    force = true;
+  };
+  home.file.".hermes/plugins/sqlite_vec/plugin.yaml" = {
+    source = ./hermes/sqlite_vec/plugin.yaml;
+    force = true;
+  };
+  home.file.".hermes/sqlite_vec_memory.json" = {
+    source = ./hermes/sqlite_vec/sqlite_vec_memory.json;
+    force = true;
+  };
+
   home.packages = with pkgs; [
     # --- Nix development -----------------------------------------------------
     nil # Nix LSP for VS Code / editors
@@ -69,7 +87,9 @@
     ast-grep # Structural code search/rewrite: sg -p 'pattern' .
 
     # --- Python --------------------------------------------------------------
-    python3
+    (python3.withPackages (ps: [
+      ps."sqlite-vec" # Local SQLite vector extension for Hermes/vector memory work
+    ]))
     uv # Fast Python package manager: uv pip install, uv run, uv init
     ruff # Python linter + formatter: ruff check ., ruff format .
 
@@ -85,6 +105,8 @@
     ctop # Container metrics TUI: ctop
 
     # --- Database clients ----------------------------------------------------
+    sqlite # SQLite CLI; needed for local vector-memory inspection
+    pkgs."sqlite-vec" # sqlite-vec loadable extension for local vector recall
     pgcli # PostgreSQL with autocomplete: pgcli -h localhost -d mydb
     litecli # SQLite with autocomplete: litecli mydb.sqlite
     usql # Universal SQL client: usql postgres://localhost/mydb

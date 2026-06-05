@@ -71,10 +71,21 @@ darwin-switch:
     just darwin-switch-host $HOST
 
 _reload-aerospace:
-    @if pgrep -q AeroSpace 2>/dev/null; then \
-        aerospace reload-config && echo "AeroSpace config reloaded"; \
+    @current_user="$(id -un)"; \
+    if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then \
+        user="$SUDO_USER"; \
     else \
-        echo "AeroSpace is not running — start it with: open -a AeroSpace"; \
+        user="$current_user"; \
+    fi; \
+    if pgrep -qx -u "$user" AeroSpace 2>/dev/null; then \
+        aero="$(command -v aerospace)" || { echo "aerospace CLI not found"; exit 1; }; \
+        if [ "$current_user" = "$user" ]; then \
+            "$aero" reload-config && echo "AeroSpace config reloaded"; \
+        else \
+            sudo -H -u "$user" "$aero" reload-config && echo "AeroSpace config reloaded"; \
+        fi; \
+    else \
+        echo "AeroSpace is not running for $user — start it with: open -a AeroSpace"; \
     fi
 
 darwin-test:

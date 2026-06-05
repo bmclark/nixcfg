@@ -1,0 +1,12 @@
+name: sqlite_vec
+version: 0.1.0
+description: Local SQLite + sqlite-vec vector recall provider for Hermes.
+kind: exclusive
+category: memory
+pip_dependencies:
+  - sqlite-vec
+hooks:
+  - on_memory_write
+  - on_session_end
+  - prefetch
+  - sync_turn

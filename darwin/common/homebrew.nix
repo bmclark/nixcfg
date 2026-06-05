@@ -9,8 +9,13 @@
     enable = true;
     onActivation.cleanup = "zap";
 
+    taps = [
+      "steipete/tap" # remindctl: Apple Reminders CLI, not in nixpkgs
+    ];
+
     brews = [
       "mas" # Mac App Store CLI (used by masApps below)
+      "remindctl" # Apple Reminders CLI for org/Apple execution bridge
       "tdd-guard" # TDD file watcher (not in nixpkgs)
     ];
 
