@@ -1,6 +1,8 @@
 # Hyprland window manager with full rice: switchable theme, blur, window rules,
 # gestures, and workspace assignments. Aligned with ADR-003 (keyboard strategy)
-# and ADR-004 (theme standardization). WM keybindings use SUPER (Ctrl→Super via keyd).
+# and ADR-004 (theme standardization). WM keybindings use the Hyper chord
+# (CTRL+ALT+SUPER), matching macOS Karabiner and Aerospace. keyd emits this
+# chord from the physical Ctrl key via the hyper:C-A-M layer.
 # Config uses Hyprland 0.55.2 Lua API: hl.config({...}), hl.bind(key, hl.dsp.*).
 {
   config,
@@ -177,7 +179,11 @@ in {
       # Contains env vars, bezier curves, startup commands, and all keybindings
       # using the 0.55.2 hl.bind(key, hl.dsp.*) API.
       extraConfig = ''
-        local mainMod = "SUPER"
+        -- Hyper chord: matches keyd's hyper:C-A-M layer output (physical Ctrl key).
+        -- On macOS Karabiner emits the same Ctrl+Alt+Cmd chord — Aerospace binds
+        -- to `ctrl-alt-cmd`, keeping WM shortcuts identical across platforms.
+        -- NB: Hyprland's key parser requires `+` between each modifier.
+        local mainMod = "CTRL + ALT + SUPER"
 
         -- Environment variables (two-arg form required in 0.55.2)
         hl.env("XCURSOR_SIZE", "32")
