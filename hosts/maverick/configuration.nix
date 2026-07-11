@@ -50,6 +50,7 @@
 
   programs.hyprland = {
     enable = true;
+    withUWSM = true; # Required: launch via uwsm for proper systemd session management
     xwayland.enable = true;
   };
 
@@ -58,7 +59,8 @@
     enable = true;
     settings = {
       default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --cmd Hyprland";
+        # Use uwsm to start Hyprland — avoids "not started via start-hyprland" warning
+        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --remember --remember-session --sessions /run/current-system/sw/share/wayland-sessions";
         user = "greeter";
       };
     };

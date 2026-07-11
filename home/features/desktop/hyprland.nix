@@ -1,6 +1,7 @@
 # Hyprland window manager with full rice: switchable theme, blur, window rules,
 # gestures, and workspace assignments. Aligned with ADR-003 (keyboard strategy)
-# and ADR-004 (theme standardization). WM keybindings use Hyper (MOD3 via keyd).
+# and ADR-004 (theme standardization). WM keybindings use SUPER (Ctrl→Super via keyd).
+# Config uses Hyprland 0.55.2 Lua API: hl.config({...}), hl.bind(key, hl.dsp.*).
 {
   config,
   lib,
@@ -12,12 +13,15 @@ with lib; let
   cfg = config.features.desktop.hyprland;
   palette = theme.palette;
   stripHash = color: builtins.replaceStrings ["#"] [""] color;
-  # Simple rgba helper keeps Dracula palette usage consistent throughout the config.
   rgba = color: alpha: "rgba(${stripHash color}${alpha})";
   kb = import ./keybindings.nix;
-  # Generate workspace assignment windowrules from shared keybindings module
-  workspaceRules = lib.concatLists (lib.mapAttrsToList (ws: def:
-    map (app: "workspace ${ws}, match:class ^(${app})$") def.linux
+  # Generate workspace window_rule entries from shared keybindings module
+  workspaceWindowRules = lib.concatLists (lib.mapAttrsToList (ws: def:
+    map (app: {
+      name = "ws-${ws}-${builtins.replaceStrings ["."] ["_"] app}";
+      match.class = "^(${app})$";
+      workspace = builtins.fromJSON ws;
+    }) def.linux
   ) kb.workspaces);
 in {
   options.features.desktop.hyprland.enable = mkEnableOption "hyprland config";
@@ -32,246 +36,225 @@ in {
 
     wayland.windowManager.hyprland = {
       enable = true;
-      # hyprexpo plugin disabled: incompatible with current Hyprland (missing HookSystemManager.hpp)
-      # plugins = [pkgs.hyprlandPlugins.hyprexpo];
+      configType = "lua"; # 0.55.2 Lua API: hl.config({...}), hl.bind(key, hl.dsp.*)
       systemd = {
         enable = true;
         variables = ["--all"];
       };
 
       settings = {
-        # --- XWayland ---------------------------------------------------------
-        xwayland.force_zero_scaling = true;
+        # --- Main Config Block (→ hl.config({...})) --------------------------
+        # All top-level config sections are grouped here per the 0.55.2 API.
+        config = {
+          xwayland.force_zero_scaling = true;
 
-        # --- Runtime Environment ---------------------------------------------
-        exec-once = [
-          "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE"
-          "dbus-update-activation-environment --systemd --all"
-          # Wallpaper daemon (swww) with initial random wallpaper
-          "swww-daemon && sleep 0.5 && $HOME/.local/bin/wallpaper-random"
-          "waybar"
-          "blueman-applet"
-          # Dropdown terminal: auto-spawns ghostty via workspace rule (on-created-empty)
-          # Alt+Tab: hyprshell daemon started via systemd (wayland.nix)
-        ];
-
-        env = [
-          "XCURSOR_SIZE,32"
-          "WLR_NO_HARDWARE_CURSORS,1"
-          "XDG_CURRENT_DESKTOP,Hyprland"
-          "XDG_SESSION_DESKTOP,Hyprland"
-          "XDG_SESSION_TYPE,wayland"
-          "GTK_THEME,${theme.gtkThemeName}"
-          "TERMINAL,ghostty"
-        ];
-
-        # --- Input -----------------------------------------------------------
-        input = {
-          kb_layout = "us";
-          kb_variant = "";
-          kb_model = "";
-          kb_rules = "";
-          kb_options = ""; # Key remapping handled by keyd (CapsLock→Ctrl, Ctrl→Hyper)
-          follow_mouse = 1;
-          sensitivity = 0;
-          touchpad.natural_scroll = false;
-        };
-
-        # --- Core Layout -----------------------------------------------------
-        general = {
-          gaps_in = 5;
-          gaps_out = 10; # Slightly more outer gap for breathing room
-          border_size = 1;
-          layout = "dwindle";
-          # Dracula palette for border gradients (#ff79c6 pink → #bd93f9 purple)
-          "col.active_border" =
-            "${rgba palette.pink "ee"} ${rgba palette.purple "ee"} 45deg";
-          "col.inactive_border" = rgba palette.comment "aa";
-        };
-
-        # --- Decorations -----------------------------------------------------
-        decoration = {
-          rounding = 12;
-          active_opacity = 0.65;
-          inactive_opacity = 0.35;
-          blur = {
-            enabled = true;
-            size = 6;
-            passes = 3;
-            vibrancy = 0.20;
-            contrast = 1.0;
-            brightness = 0.9;
-            noise = 0.01;
-            xray = true; # Blurred layers (waybar) show through for glass effect
-            popups = true;
-            popups_ignorealpha = 0.25;
+          general = {
+            gaps_in = 5;
+            gaps_out = 10;
+            border_size = 1;
+            layout = "dwindle";
+            # Dracula palette border gradient: pink → purple
+            col = {
+              active_border = {
+                colors = ["${rgba palette.pink "ee"}" "${rgba palette.purple "ee"}"];
+                angle = 45;
+              };
+              inactive_border = rgba palette.comment "aa";
+            };
           };
-          shadow = {
-            enabled = true;
-            range = 18;
-            render_power = 3;
-            ignore_window = true;
-            offset = "0 6";
-            scale = 1.0;
-            color = rgba palette.bg "66";
+
+          decoration = {
+            rounding = 12;
+            active_opacity = 0.65;
+            inactive_opacity = 0.35;
+            blur = {
+              enabled = true;
+              size = 6;
+              passes = 3;
+              vibrancy = 0.20;
+              contrast = 1.0;
+              brightness = 0.9;
+              noise = 0.01;
+              xray = true; # Blurred layers (waybar) show through for glass effect
+              popups = true;
+              popups_ignorealpha = 0.25;
+            };
+            shadow = {
+              enabled = true;
+              range = 18;
+              render_power = 3;
+              offset = "0 6";
+              scale = 1.0;
+              color = rgba palette.bg "66";
+            };
+          };
+
+          animations.enabled = true; # Curves/entries defined via extraConfig hl.curve/hl.animation
+
+          input = {
+            kb_layout = "us";
+            kb_variant = "";
+            kb_model = "";
+            kb_rules = "";
+            kb_options = ""; # Key remapping handled by keyd (CapsLock→Ctrl, Ctrl→Super)
+            follow_mouse = 1;
+            sensitivity = 0;
+            touchpad.natural_scroll = false;
+          };
+
+          dwindle.preserve_split = true;
+
+          misc = {
+            force_default_wallpaper = -1;
+            disable_hyprland_logo = false;
           };
         };
 
-        # --- Animations ------------------------------------------------------
-        animations = {
-          enabled = true;
-          bezier = [
-            "easeOutQuint, 0.23, 1, 0.32, 1"
-            "easeInOutCubic, 0.65, 0.05, 0.36, 1"
-            "quick, 0.15, 0, 0.1, 1"
-          ];
-          animation = [
-            "windowsIn, 1, 6, easeOutQuint, popin 85%"
-            "windowsOut, 1, 5, easeInOutCubic, popin 80%"
-            "windowsMove, 1, 6, easeInOutCubic"
-            "border, 1, 8, easeInOutCubic"
-            "borderangle, 1, 8, easeInOutCubic"
-            "fadeIn, 1, 6, easeOutQuint"
-            "fadeOut, 1, 6, quick"
-            "layers, 1, 6, easeOutQuint"
-            "workspaces, 1, 7, easeOutQuint, slidefade 40%"
-            "specialWorkspace, 1, 5, easeOutQuint, slidevert"
-          ];
-        };
+        # --- Bezier Curves (hoisted before animations by importantPrefixes=["curve"]) ---
+        # _args = two-arg form: hl.curve("name", {type, points})
+        curve = [
+          { _args = ["easeOutQuint"   {type = "bezier"; points = [[0.23 1.0] [0.32 1.0]];}]; }
+          { _args = ["easeInOutCubic" {type = "bezier"; points = [[0.65 0.05] [0.36 1.0]];}]; }
+          { _args = ["quick"          {type = "bezier"; points = [[0.15 0.0] [0.1 1.0]];}]; }
+        ];
 
-        # --- Window Management -----------------------------------------------
-        dwindle = {
-          pseudotile = true;
-          preserve_split = true;
-        };
-
-        # Touchpad gesture: 3-finger swipe to change workspace (new syntax for 0.51+)
+        # --- Gestures (→ hl.gesture({...})) ----------------------------------
         gesture = [
-          "3, horizontal, workspace"
+          {fingers = 3; direction = "horizontal"; action = "workspace";}
         ];
 
-        # --- Layer Rules: frosted glass on overlays (0.53+ syntax) -----------
-        layerrule = [
-          "blur on, ignore_alpha 0.1, match:namespace gtk-layer-shell"
-          "blur on, ignore_alpha 0.1, match:namespace waybar"
-          "blur on, ignore_alpha 0.1, match:namespace wofi"
+        # --- Animations (→ hl.animation({...})) ------------------------------
+        animation = [
+          {leaf = "global"; enabled = true; speed = 10; bezier = "default";}
+          {leaf = "windowsIn"; enabled = true; speed = 6; bezier = "easeOutQuint"; style = "popin 85%";}
+          {leaf = "windowsOut"; enabled = true; speed = 5; bezier = "easeInOutCubic"; style = "popin 80%";}
+          {leaf = "windowsMove"; enabled = true; speed = 6; bezier = "easeInOutCubic";}
+          {leaf = "border"; enabled = true; speed = 8; bezier = "easeInOutCubic";}
+          {leaf = "borderangle"; enabled = true; speed = 8; bezier = "easeInOutCubic";}
+          {leaf = "fadeIn"; enabled = true; speed = 6; bezier = "easeOutQuint";}
+          {leaf = "fadeOut"; enabled = true; speed = 6; bezier = "quick";}
+          {leaf = "layers"; enabled = true; speed = 6; bezier = "easeOutQuint";}
+          {leaf = "workspaces"; enabled = true; speed = 7; bezier = "easeOutQuint"; style = "slidefade 40%";}
+          {leaf = "specialWorkspace"; enabled = true; speed = 5; bezier = "easeOutQuint"; style = "slidevert";}
         ];
 
-        # --- Window Rules (0.48+ syntax) --------------------------------------
-        windowrule = [
+        # --- Layer Rules (→ hl.layer_rule({...})) ----------------------------
+        layer_rule = [
+          {name = "blur-gtk"; match.namespace = "gtk-layer-shell"; blur = true; ignore_alpha = 0.1;}
+          {name = "blur-waybar"; match.namespace = "waybar"; blur = true; ignore_alpha = 0.1;}
+          {name = "blur-wofi"; match.namespace = "wofi"; blur = true; ignore_alpha = 0.1;}
+        ];
+
+        # --- Window Rules (→ hl.window_rule({...})) --------------------------
+        window_rule = [
           # Float dialog-like windows automatically
-          "float on, match:class ^(?i:file_progress|confirm|dialog|download|notification|error|splash|confirmreset)$"
-          "float on, match:title ^(Open File|Save File|branchdialog)$"
+          {name = "float-dialogs"; match.class = "^(?i:file_progress|confirm|dialog|download|notification|error|splash|confirmreset)$"; float = true;}
+          {name = "float-file-dialogs"; match.title = "^(Open File|Save File|branchdialog)$"; float = true;}
 
           # Application-specific float rules
-          "float on, match:class ^(Wofi|dunst|Viewnior|feh|blueman-manager)$"
-          "float on, match:class ^(pavucontrol(-qt)?|org.gnome.FileRoller)$"
-          "animation none, match:class ^(Wofi)$"
+          {name = "float-apps"; match.class = "^(Wofi|dunst|Viewnior|feh|blueman-manager)$"; float = true;}
+          {name = "float-audio"; match.class = "^(pavucontrol(-qt)?|org.gnome.FileRoller)$"; float = true;}
+          {name = "no-anim-wofi"; match.class = "^(Wofi)$"; no_anim = true;}
 
           # Volume control sizing and positioning
-          "float on, match:title ^(Volume Control)$"
-          "size 800 600, match:title ^(Volume Control)$"
-          "move 75 44%, match:title ^(Volume Control)$"
+          {name = "volume-control"; match.title = "^(Volume Control)$"; float = true; size = "800 600"; move = "75 44%";}
 
-          # Picture-in-Picture: float, pin, and resize
-          "float on, pin on, size 480 270, match:title ^(Picture-in-Picture)$"
+          # Picture-in-Picture: float, pin, resize
+          {name = "pip"; match.title = "^(Picture-in-Picture)$"; float = true; pin = true; size = "480 270";}
 
-          # Media / full-screen rules (idleinhibit removed in 0.53+, use hypridle)
-          "fullscreen on, float on, match:title ^(wlogout)$"
-
-          # Workspace assignments (generated from keybindings.nix)
-        ] ++ workspaceRules ++ [
+          # wlogout fullscreen
+          {name = "wlogout"; match.title = "^(wlogout)$"; fullscreen = true; float = true;}
 
           # Force full opacity on browsers (blur looks bad through text)
-          "opacity 1.0 override 1.0, match:class ^(firefox|chromium-browser)$"
-
-          # Dropdown terminal sizing handled by ~/.local/bin/dropdown-terminal
-        ];
-
-        # --- Keybindings -----------------------------------------------------
-        "$mainMod" = "SUPER"; # Physical Ctrl → Super via keyd (hyper removed in keyd 2.6.0)
-        # Hyper (MOD3 via keyd) controls the WM. Arrow keys for directional focus.
-        # CUA bindings (Ctrl via CapsLock) and Emacs navigation are unaffected.
-        bind = [
-          # Core launcher bindings
-          "$mainMod, Return, exec, ghostty"
-          "$mainMod, D, exec, wofi --show drun"
-          "$mainMod, Space, togglefloating"
-          "$mainMod, F, fullscreen"
-          "$mainMod, W, killactive"
-          "$mainMod, E, exec, thunar"
-          "$mainMod, L, exec, hyprlock"
-          "$mainMod, Escape, exec, wlogout -p layer-shell"
-          # Workspace cycling (arrows — matches macOS Ctrl+arrows convention)
-          "$mainMod, left, workspace, r-1"
-          "$mainMod, right, workspace, r+1"
-
-          # Window focus (comma/period for horizontal, arrows for vertical)
-          "$mainMod, comma, movefocus, l"
-          "$mainMod, period, movefocus, r"
-          "$mainMod, up, movefocus, u"
-          "$mainMod, down, movefocus, d"
-
-          # Dropdown terminal (CapsLock+` = Ctrl+grave toggles special:terminal workspace)
-          "CTRL, grave, exec, $HOME/.local/bin/dropdown-terminal"
-
-          # Wallpaper controls
-          "$mainMod SHIFT, W, exec, $HOME/.local/bin/wallpaper-random"
-
-          # CUA / application bindings
-          "ALT, F4, killactive"
-          # Alt+Tab handled by hyprshell daemon (see wayland.nix systemd service)
-
-          # Move window to adjacent workspace (shift+arrows)
-          "$mainMod SHIFT, left, movetoworkspace, r-1"
-          "$mainMod SHIFT, right, movetoworkspace, r+1"
-          "$mainMod SHIFT, up, movewindow, u"
-          "$mainMod SHIFT, down, movewindow, d"
-
-          # Move window within workspace (shift+comma/period)
-          "$mainMod SHIFT, comma, movewindow, l"
-          "$mainMod SHIFT, period, movewindow, r"
-
-          # Workspace management
-          "$mainMod, 1, workspace, 1"
-          "$mainMod, 2, workspace, 2"
-          "$mainMod, 3, workspace, 3"
-          "$mainMod, 4, workspace, 4"
-          "$mainMod, 5, workspace, 5"
-          "$mainMod, 6, workspace, 6"
-          "$mainMod, 7, workspace, 7"
-          "$mainMod, 8, workspace, 8"
-          "$mainMod, 9, workspace, 9"
-          "$mainMod, 0, workspace, 10"
-          "$mainMod SHIFT, 1, movetoworkspace, 1"
-          "$mainMod SHIFT, 2, movetoworkspace, 2"
-          "$mainMod SHIFT, 3, movetoworkspace, 3"
-          "$mainMod SHIFT, 4, movetoworkspace, 4"
-          "$mainMod SHIFT, 5, movetoworkspace, 5"
-          "$mainMod SHIFT, 6, movetoworkspace, 6"
-          "$mainMod SHIFT, 7, movetoworkspace, 7"
-          "$mainMod SHIFT, 8, movetoworkspace, 8"
-          "$mainMod SHIFT, 9, movetoworkspace, 9"
-          "$mainMod SHIFT, 0, movetoworkspace, 10"
-
-          # Screenshots
-          "$mainMod SHIFT, S, exec, bash -lc 'grim -g \"$(slurp)\" \"$HOME/Pictures/Screenshots/$(date +%Y-%m-%d-%H%M%S).png\"'"
-          "$mainMod SHIFT, Print, exec, bash -lc 'grim \"$HOME/Pictures/Screenshots/$(date +%Y-%m-%d-%H%M%S).png\"'"
-          "$mainMod ALT, S, exec, $HOME/.local/bin/screenshot-area-annotate"
-          "$mainMod ALT, O, exec, $HOME/.local/bin/ocr-screenshot"
-          "$mainMod, V, exec, $HOME/.local/bin/cliphist-wofi"
-          "$mainMod SHIFT, C, exec, hyprpicker -a"
-
-          # Workspace cycling with mouse wheel
-          "$mainMod, mouse_down, workspace, r-1"
-          "$mainMod, mouse_up, workspace, r+1"
-        ];
-
-        bindm = [
-          "$mainMod, mouse:272, movewindow"
-          "$mainMod, mouse:273, resizewindow"
-        ];
+          {name = "browser-opacity"; match.class = "^(firefox|chromium-browser)$"; opacity = 1.0;}
+        ] ++ workspaceWindowRules;
       };
+
+      # Raw Lua appended after the generated settings block.
+      # Contains env vars, bezier curves, startup commands, and all keybindings
+      # using the 0.55.2 hl.bind(key, hl.dsp.*) API.
+      extraConfig = ''
+        local mainMod = "SUPER"
+
+        -- Environment variables (two-arg form required in 0.55.2)
+        hl.env("XCURSOR_SIZE", "32")
+        hl.env("WLR_NO_HARDWARE_CURSORS", "1")
+        hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
+        hl.env("XDG_SESSION_DESKTOP", "Hyprland")
+        hl.env("XDG_SESSION_TYPE", "wayland")
+        hl.env("GTK_THEME", "${theme.gtkThemeName}")
+        hl.env("TERMINAL", "ghostty")
+
+        -- Startup (exec-once equivalent; systemd session setup handled by systemd.enable)
+        hl.on("hyprland.start", function()
+          hl.exec_cmd("swww-daemon && sleep 0.5 && $HOME/.local/bin/wallpaper-random")
+          hl.exec_cmd("waybar")
+          hl.exec_cmd("blueman-applet")
+        end)
+
+        -- Core launcher bindings
+        hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd("ghostty"))
+        hl.bind(mainMod .. " + D",      hl.dsp.exec_cmd("wofi --show drun"))
+        hl.bind(mainMod .. " + Space",  hl.dsp.window.float({action = "toggle"}))
+        hl.bind(mainMod .. " + F",      hl.dsp.window.fullscreen())
+        hl.bind(mainMod .. " + W",      hl.dsp.window.close())
+        hl.bind(mainMod .. " + E",      hl.dsp.exec_cmd("thunar"))
+        hl.bind(mainMod .. " + L",      hl.dsp.exec_cmd("hyprlock"))
+        hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("wlogout -p layer-shell"))
+
+        -- Workspace cycling (arrows — matches macOS Ctrl+arrows convention)
+        hl.bind(mainMod .. " + left",  hl.dsp.focus({workspace = "r-1"}))
+        hl.bind(mainMod .. " + right", hl.dsp.focus({workspace = "r+1"}))
+
+        -- Window focus (comma/period for horizontal, arrows for vertical)
+        hl.bind(mainMod .. " + comma",  hl.dsp.focus({direction = "left"}))
+        hl.bind(mainMod .. " + period", hl.dsp.focus({direction = "right"}))
+        hl.bind(mainMod .. " + up",     hl.dsp.focus({direction = "up"}))
+        hl.bind(mainMod .. " + down",   hl.dsp.focus({direction = "down"}))
+
+        -- Dropdown terminal (CapsLock+` = Ctrl+grave via keyd)
+        hl.bind("CTRL + grave", hl.dsp.exec_cmd("$HOME/.local/bin/dropdown-terminal"))
+
+        -- Wallpaper controls
+        hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("$HOME/.local/bin/wallpaper-random"))
+
+        -- CUA / application bindings
+        hl.bind("ALT + F4", hl.dsp.window.close())
+
+        -- Move window to adjacent workspace (shift+arrows)
+        hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.move({workspace = "r-1"}))
+        hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({workspace = "r+1"}))
+        hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.move({direction = "up"}))
+        hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.move({direction = "down"}))
+
+        -- Move window within workspace (shift+comma/period)
+        hl.bind(mainMod .. " + SHIFT + comma",  hl.dsp.window.move({direction = "left"}))
+        hl.bind(mainMod .. " + SHIFT + period", hl.dsp.window.move({direction = "right"}))
+
+        -- Numbered workspaces (1-9, then 0→10)
+        for i = 1, 9 do
+          hl.bind(mainMod .. " + " .. i,         hl.dsp.focus({workspace = i}))
+          hl.bind(mainMod .. " + SHIFT + " .. i, hl.dsp.window.move({workspace = i}))
+        end
+        hl.bind(mainMod .. " + 0",         hl.dsp.focus({workspace = 10}))
+        hl.bind(mainMod .. " + SHIFT + 0", hl.dsp.window.move({workspace = 10}))
+
+        -- Screenshots
+        hl.bind(mainMod .. " + SHIFT + S",     hl.dsp.exec_cmd("bash -lc 'grim -g \"$(slurp)\" \"$HOME/Pictures/Screenshots/$(date +%Y-%m-%d-%H%M%S).png\"'"))
+        hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("bash -lc 'grim \"$HOME/Pictures/Screenshots/$(date +%Y-%m-%d-%H%M%S).png\"'"))
+        hl.bind(mainMod .. " + ALT + S",       hl.dsp.exec_cmd("$HOME/.local/bin/screenshot-area-annotate"))
+        hl.bind(mainMod .. " + ALT + O",       hl.dsp.exec_cmd("$HOME/.local/bin/ocr-screenshot"))
+        hl.bind(mainMod .. " + V",             hl.dsp.exec_cmd("$HOME/.local/bin/cliphist-wofi"))
+        hl.bind(mainMod .. " + SHIFT + C",     hl.dsp.exec_cmd("hyprpicker -a"))
+
+        -- Workspace cycling with mouse wheel
+        hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({workspace = "e-1"}))
+        hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({workspace = "e+1"}))
+
+        -- Mouse window manipulation
+        hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   {mouse = true})
+        hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), {mouse = true})
+      '';
     };
   };
 }

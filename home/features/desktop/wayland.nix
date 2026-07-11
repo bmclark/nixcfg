@@ -671,12 +671,6 @@ in {
           notify = true;
           tray = "auto";
         };
-        device_config = [
-          {
-            id_uuid = "*";
-            options = ["umask=0022"];
-          }
-        ];
       };
     }; # Automount removable media with per-user ownership and tray icon.
 
