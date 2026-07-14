@@ -195,7 +195,8 @@ in {
 
         -- Startup (exec-once equivalent; systemd session setup handled by systemd.enable)
         hl.on("hyprland.start", function()
-          hl.exec_cmd("swww-daemon && sleep 0.5 && $HOME/.local/bin/wallpaper-random")
+          -- awww-daemon runs forever, so background it with `&` before chaining.
+          hl.exec_cmd("awww-daemon & sleep 0.5 && $HOME/.local/bin/wallpaper-random")
           hl.exec_cmd("waybar")
           hl.exec_cmd("blueman-applet")
         end)
