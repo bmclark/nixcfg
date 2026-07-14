@@ -162,6 +162,9 @@ in {
   config = mkIf cfg.enable {
     programs.firefox = {
       enable = true;
+      # Keep legacy profile path (~/.mozilla/firefox) to avoid moving profile data.
+      # HM's new default is $XDG_CONFIG_HOME/mozilla/firefox but requires a migration.
+      configPath = ".mozilla/firefox";
 
       # ---- POLICIES (apply to all profiles) ----
       policies = {

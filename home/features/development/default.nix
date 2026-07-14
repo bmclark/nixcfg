@@ -15,11 +15,13 @@
       AddKeysToAgent yes
       IdentitiesOnly yes
     '';
-    # Default match block: connection multiplexing for speed
-    matchBlocks."*" = {
-      controlMaster = "auto";
-      controlPath = "~/.ssh/sockets/%r@%h-%p";
-      controlPersist = "10m";
+    # Default match block: connection multiplexing for speed.
+    # `settings` replaces `matchBlocks` (deprecated in home-manager 26.11);
+    # attribute values use OpenSSH directive casing (ControlMaster, not controlMaster).
+    settings."*" = {
+      ControlMaster = "auto";
+      ControlPath = "~/.ssh/sockets/%r@%h-%p";
+      ControlPersist = "10m";
     };
   };
 

@@ -35,7 +35,11 @@ in {
         "--bind 'ctrl-/:toggle-preview'"
       ];
       defaultCommand = "fd --type f --exclude .git --follow --hidden";
-      changeDirWidgetCommand = "fd --type d --exclude .git --follow --hidden";
+      changeDirWidget.command = "fd --type d --exclude .git --follow --hidden";
+      # Atuin owns Ctrl+R (its integration is sourced after fzf and provides a
+      # metadata-rich TUI over its SQLite history DB). Silences the HM warning
+      # about the double-bind by explicitly declaring fzf's history widget off.
+      historyWidget.command = "";
     };
   };
 }
