@@ -55,6 +55,7 @@ in {
 
   config = mkIf cfg.enable {
     home.pointerCursor = {
+      enable = true;
       gtk.enable = true;
       x11.enable = true;
       package = pkgs.adwaita-icon-theme;
@@ -88,7 +89,7 @@ in {
       polkit_gnome # authentication agent binary
       qt6.qtwayland
       wttrbar
-      swww # animated wallpaper daemon with transition effects
+      awww # animated wallpaper daemon with transition effects (swww renamed upstream)
       playerctl # media control for mpris waybar module
 
       # Thunar extensions for archives and removable media
@@ -99,8 +100,8 @@ in {
       tesseract
     ];
 
-    # --- Wallpapers (swww) ---------------------------------------------------
-    # swww provides animated transitions between wallpapers.
+    # --- Wallpapers (awww) ---------------------------------------------------
+    # awww (formerly swww) provides animated transitions between wallpapers.
     # Wallpaper dir: ~/Pictures/papes/{sfw,nsfw}
     # Toggle: `wallpaper-mode sfw` or `wallpaper-mode nsfw`
     # Random: `wallpaper-random` picks a random wallpaper from active mode
@@ -146,7 +147,7 @@ in {
         WALLPAPER="$(find "$PAPES_DIR" -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.webp' \) 2>/dev/null | shuf -n 1)"
 
         if [[ -n "$WALLPAPER" ]]; then
-          swww img "$WALLPAPER" \
+          awww img "$WALLPAPER" \
             --transition-type grow \
             --transition-pos "$(hyprctl cursorpos)" \
             --transition-duration 2 \
@@ -181,7 +182,7 @@ in {
           echo "Usage: wallpaper-set <path>"
           exit 1
         fi
-        swww img "$1" \
+        awww img "$1" \
           --transition-type grow \
           --transition-pos "$(hyprctl cursorpos)" \
           --transition-duration 2 \

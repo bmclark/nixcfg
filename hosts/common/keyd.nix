@@ -1,10 +1,15 @@
-# keyd: system-level key remapping daemon.
-# Remaps CapsLock→Ctrl (emacs), physical Ctrl→Super (WM),
-# and physical Super→Ctrl for common CUA shortcuts (copy/paste/undo).
-# Runs at evdev level, transparent to Hyprland and all apps.
+# keyd: system-level key remapping daemon. Implements ADR-003.
+#
+# Three separated modifier namespaces:
+#   - CapsLock → Ctrl                (Emacs / shell / logical Ctrl)
+#   - Physical Ctrl → Hyper (C-A-M)  (Hyprland WM; matches macOS Karabiner)
+#   - Physical Super/Windows → super_cua layer → Ctrl+letter (CUA copy/paste)
+#
+# The `hyper:C-A-M` layer has no explicit bindings — its `:C-A-M` suffix tells
+# keyd to emit Ctrl+Alt+Meta chord for any key pressed while the layer is
+# active. Hyprland binds to `CTRL ALT SUPER` to receive this.
 #
 # Note: keyd cannot exclude per-app (it operates below the compositor).
-# keyd-application-mapper supports X11/sway/GNOME but not Hyprland.
 # For Emacs on Linux, CUA mode handles the translated Ctrl keys contextually.
 {...}: {
   services.keyd = {
@@ -14,13 +19,17 @@
       settings = {
         main = {
           capslock = "leftcontrol";
-          leftcontrol = "leftmeta";
-          rightcontrol = "rightmeta";
+          leftcontrol = "layer(hyper)";
+          rightcontrol = "layer(hyper)";
           leftmeta = "layer(super_cua)";
           rightmeta = "layer(super_cua)";
         };
-        # Super (Cmd) → Ctrl for common CUA shortcuts.
-        # Makes Cmd+C/V/X/Z/S/A/F/W/T/N/Q match macOS muscle memory.
+        # Hyper layer: no explicit bindings. The `:C-A-M` suffix on the layer
+        # name causes keyd to emit Ctrl+Alt+Meta modifiers for every key
+        # pressed while the layer is active, forming the Hyper chord.
+        "hyper:C-A-M" = {};
+        # Super (physical Windows/Cmd key) → Ctrl for common CUA shortcuts.
+        # Makes Super+C/V/X/Z/S/A/F/W/T/N/Q match macOS muscle memory.
         "super_cua" = {
           c = "C-c";       # copy
           v = "C-v";       # paste

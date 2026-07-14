@@ -26,29 +26,37 @@ Hyprland follows the shared keyboard strategy: logical `Ctrl` lives on `CapsLock
 | Physical key | Action |
 |----------|--------|
 | Alt+Tab | Visual window switcher across all workspaces (hyprshell) |
-| Alt+Shift+Tab | Cycle windows backward |
-| Ctrl+Left | Focus window to the left |
-| Ctrl+Right | Focus window to the right |
+| Ctrl+Comma | Focus window to the left |
+| Ctrl+Period | Focus window to the right |
 | Ctrl+Up | Focus window above |
 | Ctrl+Down | Focus window below |
 
 ### Window Movement
 | Physical key | Action |
 |----------|--------|
-| Ctrl+Shift+Left | Move window left |
-| Ctrl+Shift+Right | Move window right |
+| Ctrl+Shift+Comma | Move window left |
+| Ctrl+Shift+Period | Move window right |
 | Ctrl+Shift+Up | Move window up |
 | Ctrl+Shift+Down | Move window down |
+| Ctrl+Shift+Left | Move window to previous workspace |
+| Ctrl+Shift+Right | Move window to next workspace |
 
 ### Workspace Management
 | Physical key | Action |
 |----------|--------|
 | Ctrl+1..0 | Switch to workspace 1..10 |
 | Ctrl+Shift+1..0 | Move window to workspace 1..10 |
-| Ctrl+Comma | Previous workspace |
-| Ctrl+Period | Next workspace |
+| Ctrl+Left | Previous workspace |
+| Ctrl+Right | Next workspace |
 | CapsLock+Grave | Toggle the guake-style dropdown terminal (top third) |
 | Ctrl+Mouse Wheel | Cycle workspaces |
+
+### Resize Mode
+| Physical key | Action |
+|----------|--------|
+| Ctrl+R | Enter resize mode |
+| Left / Right / Up / Down | Resize active window (hold for continuous) |
+| Escape | Exit resize mode |
 
 ### Screenshots
 | Physical key | Action |
@@ -59,6 +67,24 @@ Hyprland follows the shared keyboard strategy: logical `Ctrl` lives on `CapsLock
 | Ctrl+Alt+O | OCR selected region to clipboard |
 | Ctrl+V | Open clipboard history picker |
 | Ctrl+Shift+C | Pick a screen color to the clipboard |
+
+### Wallpaper
+| Physical key | Action |
+|----------|--------|
+| Ctrl+Shift+W | Set a random wallpaper |
+
+### Media Keys
+| Physical key | Action |
+|----------|--------|
+| Volume Up | Raise audio volume (+5%) |
+| Volume Down | Lower audio volume (−5%) |
+| Mute | Toggle audio mute |
+| Mic Mute | Toggle microphone mute |
+| Brightness Up | Increase screen brightness (+5%) |
+| Brightness Down | Decrease screen brightness (−5%) |
+| Play/Pause | Toggle media playback |
+| Next | Skip to next track |
+| Previous | Skip to previous track |
 
 ### Mouse Bindings
 | Physical key | Action |
@@ -88,10 +114,13 @@ Enable or disable modules via `home/bclark/maverick.nix` to tailor the desktop s
 - Troubleshoot with `systemctl status bluetooth` and `rfkill list` (unblock if necessary).
 
 ## Wayland Ecosystem Services
-### Hyprpaper (Wallpaper)
-- Configured in `services.hyprpaper.settings` (see `home/features/desktop/wayland.nix`).  
-- Default wallpaper path: `~/Pictures/wallpapers/dracula-waves.png`.  
-- Change wallpaper at runtime: `hyprctl hyprpaper wallpaper ",/path/to/image.png"`.
+### Wallpaper (swww)
+- `swww` provides animated transitions; `hyprpaper` is disabled.
+- Wallpapers live in `~/Pictures/papes/sfw/` and `~/Pictures/papes/nsfw/`.
+- Switch mode: `wallpaper-mode sfw` or `wallpaper-mode nsfw`.
+- Set a random wallpaper: `wallpaper-random` or `Ctrl+Shift+W`.
+- Set a specific file: `wallpaper-set /path/to/image.png`.
+- Wallpaper rotates automatically every 20 minutes via a systemd timer.
 
 ### Hypridle (Idle Management)
 - Locks screen after 15 minutes, disables displays after 20 minutes, and restores DPMS on resume.  
@@ -164,19 +193,19 @@ Enable or disable modules via `home/bclark/maverick.nix` to tailor the desktop s
 - **Bluetooth not working** — Ensure the service is active: `systemctl status bluetooth`; check `rfkill list`; pair via `bluetoothctl`.  
 - **USB drives not automounting** — Verify `systemctl status udisks2` and `systemctl --user status udiskie`. Confirm the polkit agent is running.  
 - **Authentication dialogs missing** — Restart the agent: `systemctl --user restart polkit-gnome-authentication-agent-1`. Confirm `security.polkit.enable = true`.  
-- **Wallpaper not loading** — Confirm the image exists at the configured path and inspect logs with `journalctl --user -u hyprpaper`.  
+- **Wallpaper not loading** — Confirm images exist in `~/Pictures/papes/{sfw,nsfw}/`. Check the swww daemon (`pgrep swww-daemon` or `swww query`) and run `wallpaper-random` manually to see errors.  
 - **Idle lock not triggering** — Check `systemctl --user status hypridle` and ensure Hyprland systemd integration is enabled in `hyprland.nix`.  
 - **Notifications not appearing** — Verify `systemctl --user status dunst` and test with `notify-send`.  
 - **Blur missing on Waybar** — Ensure Waybar style uses transparent backgrounds and that `layerrule` blur entries are present in `hyprland.nix`.  
 - **Performance issues** — Reduce blur passes, disable shadows, or tweak animation curves to lighten GPU load.
 
 ## Customization
-- Adjust keybindings in `home/features/desktop/hyprland.nix` (see the `bind` list).  
-- Add or update window rules using the Hyprland v2 syntax (`windowrule = [ "action,class:^(App)$" ]`).  
-- Tune blur, shadows, and animation curves inside the `decoration` and `animations` sections.  
-- Modify Waybar modules by editing `programs.waybar.settings.mainbar`.  
-- Choose default audio devices in `pavucontrol` or with `wpctl set-default`.  
-- Manage Bluetooth devices with Blueman (GUI) or `bluetoothctl` (CLI).  
+- Adjust keybindings in `home/features/desktop/hyprland.nix` (`extraConfig` Lua block).
+- Add or update window rules via `settings.window_rule` (Lua API 0.55.2 `hl.window_rule({...})` form).
+- Tune blur, shadows, and animation curves inside `settings.config.decoration` and `settings.animation`.
+- Modify Waybar modules by editing `programs.waybar.settings.mainbar` in `wayland.nix`.
+- Choose default audio devices in `pavucontrol` or with `wpctl set-default`.
+- Manage Bluetooth devices with Blueman (GUI) or `bluetoothctl` (CLI).
 - Maintain Dracula color consistency by sourcing colors from `home/themes/dracula.nix`.
 
 ## References

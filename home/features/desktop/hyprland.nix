@@ -1,6 +1,8 @@
 # Hyprland window manager with full rice: switchable theme, blur, window rules,
 # gestures, and workspace assignments. Aligned with ADR-003 (keyboard strategy)
-# and ADR-004 (theme standardization). WM keybindings use SUPER (Ctrl→Super via keyd).
+# and ADR-004 (theme standardization). WM keybindings use the Hyper chord
+# (CTRL+ALT+SUPER), matching macOS Karabiner and Aerospace. keyd emits this
+# chord from the physical Ctrl key via the hyper:C-A-M layer.
 # Config uses Hyprland 0.55.2 Lua API: hl.config({...}), hl.bind(key, hl.dsp.*).
 {
   config,
@@ -99,7 +101,10 @@ in {
             kb_options = ""; # Key remapping handled by keyd (CapsLock→Ctrl, Ctrl→Super)
             follow_mouse = 1;
             sensitivity = 0;
-            touchpad.natural_scroll = false;
+            touchpad = {
+              natural_scroll = false;
+              tap_to_click = true;
+            };
           };
 
           dwindle.preserve_split = true;
@@ -174,11 +179,14 @@ in {
       # Contains env vars, bezier curves, startup commands, and all keybindings
       # using the 0.55.2 hl.bind(key, hl.dsp.*) API.
       extraConfig = ''
-        local mainMod = "SUPER"
+        -- Hyper chord: matches keyd's hyper:C-A-M layer output (physical Ctrl key).
+        -- On macOS Karabiner emits the same Ctrl+Alt+Cmd chord — Aerospace binds
+        -- to `ctrl-alt-cmd`, keeping WM shortcuts identical across platforms.
+        -- NB: Hyprland's key parser requires `+` between each modifier.
+        local mainMod = "CTRL + ALT + SUPER"
 
         -- Environment variables (two-arg form required in 0.55.2)
         hl.env("XCURSOR_SIZE", "32")
-        hl.env("WLR_NO_HARDWARE_CURSORS", "1")
         hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
         hl.env("XDG_SESSION_DESKTOP", "Hyprland")
         hl.env("XDG_SESSION_TYPE", "wayland")
@@ -187,7 +195,8 @@ in {
 
         -- Startup (exec-once equivalent; systemd session setup handled by systemd.enable)
         hl.on("hyprland.start", function()
-          hl.exec_cmd("swww-daemon && sleep 0.5 && $HOME/.local/bin/wallpaper-random")
+          -- awww-daemon runs forever, so background it with `&` before chaining.
+          hl.exec_cmd("awww-daemon & sleep 0.5 && $HOME/.local/bin/wallpaper-random")
           hl.exec_cmd("waybar")
           hl.exec_cmd("blueman-applet")
         end)
@@ -254,6 +263,27 @@ in {
         -- Mouse window manipulation
         hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   {mouse = true})
         hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), {mouse = true})
+
+        -- Keyboard resize submap (SUPER+R enters, arrows resize, Escape exits)
+        hl.bind(mainMod .. " + R", hl.dsp.submap("resize"))
+        hl.define_submap("resize", "reset", function()
+          hl.bind("right", hl.dsp.window.resize({x = 10,  y = 0,   relative = true}), {repeating = true})
+          hl.bind("left",  hl.dsp.window.resize({x = -10, y = 0,   relative = true}), {repeating = true})
+          hl.bind("up",    hl.dsp.window.resize({x = 0,   y = -10, relative = true}), {repeating = true})
+          hl.bind("down",  hl.dsp.window.resize({x = 0,   y = 10,  relative = true}), {repeating = true})
+          hl.bind("Escape", hl.dsp.submap("reset"))
+        end)
+
+        -- Media and function keys (locked = active on lock screen, repeating = held key repeats)
+        hl.bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), {locked = true, repeating = true})
+        hl.bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      {locked = true, repeating = true})
+        hl.bind("XF86AudioMute",         hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     {locked = true})
+        hl.bind("XF86AudioMicMute",      hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   {locked = true})
+        hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  {locked = true, repeating = true})
+        hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  {locked = true, repeating = true})
+        hl.bind("XF86AudioPlay",         hl.dsp.exec_cmd("playerctl play-pause"),                           {locked = true})
+        hl.bind("XF86AudioNext",         hl.dsp.exec_cmd("playerctl next"),                                 {locked = true})
+        hl.bind("XF86AudioPrev",         hl.dsp.exec_cmd("playerctl previous"),                             {locked = true})
       '';
     };
   };
