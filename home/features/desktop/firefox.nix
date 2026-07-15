@@ -37,16 +37,22 @@ with lib; let
     multi-account-containers
     facebook-container
     tampermonkey
+    temporary-containers # auto-containerizes anything not explicitly assigned
+    sponsorblock
+    consent-o-matic
   ];
 
   # Installed only on the hardened "default" profile: these are the ones
   # most likely to break sites, which is exactly what the "relaxed"
-  # profile exists to avoid.
+  # profile exists to avoid. skip-redirect joins clearurls here since
+  # rewriting redirect chains carries the same breakage risk (e.g. OAuth
+  # login flows).
   hardenedOnlyExtensionPackages = with addons; [
     localcdn
     clearurls
     cookie-autodelete
     canvasblocker
+    skip-redirect
   ];
 
   # ExtensionSettings' "*".installation_mode = "blocked" below doesn't just
@@ -160,9 +166,15 @@ with lib; let
 
     # Tabs: new tabs (incl. Ctrl+T, not just links) open next to the
     # current tab; Ctrl+Tab cycles most-recently-used instead of visual
-    # order.
+    # order, with preview thumbnails; warn before closing multiple tabs.
     "browser.tabs.insertAfterCurrent" = true;
     "browser.ctrlTab.sortByRecentlyUsed" = true;
+    "browser.ctrlTab.previews" = true;
+    "browser.tabs.warnOnClose" = true;
+
+    # Global Privacy Control: legally-recognized "do not sell/share my
+    # data" signal (honored in CA, CO, CT, and others).
+    "privacy.globalprivacycontrol.enabled" = true;
 
     # Address/payment-card autofill disabled -- Bitwarden is the source of
     # truth for that data too. Form history (separate pref) is already off
@@ -217,6 +229,10 @@ with lib; let
       # --- WebRTC leak prevention ---
       "media.peerconnection.ice.default_address_only" = true;
       "media.peerconnection.ice.no_host" = true;
+
+      # --- Referrer trimming (arkenfox-style) ---
+      "network.http.referer.XOriginPolicy" = 2; # only send referrer when hosts match
+      "network.http.referer.XOriginTrimmingPolicy" = 2; # cross-origin referrer = origin only
 
       # --- HTTPS & TLS hardening ---
       "dom.security.https_only_mode" = true;

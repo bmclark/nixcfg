@@ -152,9 +152,12 @@ network fetch from addons.mozilla.org on first launch. `ExtensionSettings."*".in
 = "blocked"` still blocks ad-hoc manual installs from `about:addons`.
 
 - Shared (both profiles): Bitwarden, uBlock Origin, Privacy Badger, Dracula theme,
-  Dark Reader, xBrowserSync, Multi-Account Containers, Facebook Container, Tampermonkey
+  Dark Reader, xBrowserSync, Multi-Account Containers, Facebook Container, Tampermonkey,
+  Temporary Containers, SponsorBlock, Consent-O-Matic
 - Hardened-only (`default` profile): LocalCDN, ClearURLs, Cookie AutoDelete,
-  CanvasBlocker — left off `relaxed` since these are the ones most likely to break sites
+  CanvasBlocker, Skip Redirect — left off `relaxed` since these are the ones most
+  likely to break sites (Skip Redirect specifically can interfere with OAuth/login
+  redirect chains)
 
 **Tampermonkey / userscripts**: Tampermonkey itself installs declaratively like any
 other extension, but the userscripts it runs (e.g. 4chan X) live in Tampermonkey's own
@@ -201,6 +204,14 @@ process won't pick up a new toolbar layout.
 - DRM (Widevine) left at Firefox's default (enabled) so streaming sites keep working
 - Hardware acceleration/performance left at Firefox's auto-detected recommended
   settings (no known issue to fix)
+- Ctrl+Tab shows preview thumbnails; warns before closing multiple tabs at once
+- Global Privacy Control signal enabled (`privacy.globalprivacycontrol.enabled`)
+- Vertical tabs intentionally left off (kept the standard horizontal tab strip)
+
+**Hardened-profile-only settings**: referrer trimming
+(`network.http.referer.XOriginPolicy`/`XOriginTrimmingPolicy` = 2, arkenfox-style —
+cross-origin referrers are stripped to origin-only). Not applied to `relaxed` to
+avoid extra site-breakage risk there.
 
 **Site → container assignment is intentionally NOT declared in Nix.** Multi-Account
 Containers stores "Always Open This Site In" rules in its own extension storage
