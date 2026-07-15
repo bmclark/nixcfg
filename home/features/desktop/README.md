@@ -195,6 +195,12 @@ process won't pick up a new toolbar layout.
   Ctrl+Tab cycles most-recently-used instead of visual/position order
 - Firefox's built-in password manager is disabled (`PasswordManagerEnabled = false`
   policy) — Bitwarden is the single source of truth for saved logins
+- Address/payment-card autofill disabled (Bitwarden handles that data too)
+- Cookie consent banners auto-rejected where Firefox can detect them
+  (`cookiebanners.service.mode`), including in private browsing
+- DRM (Widevine) left at Firefox's default (enabled) so streaming sites keep working
+- Hardware acceleration/performance left at Firefox's auto-detected recommended
+  settings (no known issue to fix)
 
 **Site → container assignment is intentionally NOT declared in Nix.** Multi-Account
 Containers stores "Always Open This Site In" rules in its own extension storage

@@ -163,6 +163,21 @@ with lib; let
     # order.
     "browser.tabs.insertAfterCurrent" = true;
     "browser.ctrlTab.sortByRecentlyUsed" = true;
+
+    # Address/payment-card autofill disabled -- Bitwarden is the source of
+    # truth for that data too. Form history (separate pref) is already off
+    # in the hardened settings below.
+    "extensions.formautofill.addresses.enabled" = false;
+    "extensions.formautofill.creditCards.enabled" = false;
+
+    # Auto-reject cookie consent banners where Firefox can detect and
+    # handle them; falls back to showing the banner normally otherwise.
+    "cookiebanners.service.mode" = 1;
+    "cookiebanners.service.mode.privateBrowsing" = 1;
+
+    # DRM (Widevine) left at Firefox's default (enabled) -- streaming
+    # sites (Netflix, Spotify web player, etc.) need it to play video.
+    # media.eme.enabled intentionally left unset.
   };
 
   # Declarative bookmarks scaffold (currently empty/unused).
