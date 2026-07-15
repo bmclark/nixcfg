@@ -137,14 +137,107 @@ On `iceman`, `Ctrl+\`` toggles into and back out of workspace `S`. On first use 
 
 ### Firefox
 
-Firefox is the primary browser.
+Firefox is the primary browser, configured as declaratively as home-manager allows
+(`home/features/desktop/firefox.nix`).
 
 | Profile | Launch | Use for |
 |---------|--------|---------|
 | `default` | `firefox` | Day-to-day browsing with the strongest privacy defaults |
 | `relaxed` | `firefox -P relaxed` | Sites that break under hardened settings |
 
-Shared extensions include Bitwarden, uBlock Origin, Privacy Badger, Dracula, Dark Reader, and xBrowserSync.
+**Extensions** are installed as pinned Nix packages from NUR
+(`pkgs.nur.repos.rycee.firefox-addons`), not via enterprise-policy `.xpi` downloads —
+this means the exact extension build comes from the Nix store and doesn't require a
+network fetch from addons.mozilla.org on first launch. `ExtensionSettings."*".installation_mode
+= "blocked"` still blocks ad-hoc manual installs from `about:addons`.
+
+- Shared (both profiles): Bitwarden, uBlock Origin, Privacy Badger, Dracula theme,
+  Dark Reader, xBrowserSync, Multi-Account Containers, Facebook Container, Tampermonkey,
+  Temporary Containers, SponsorBlock, Consent-O-Matic, Reddit Enhancement Suite,
+  Old Reddit Redirect (RES's features work best on old Reddit), Stylus
+- Hardened-only (`default` profile): LocalCDN, ClearURLs, Cookie AutoDelete,
+  CanvasBlocker, Skip Redirect — left off `relaxed` since these are the ones most
+  likely to break sites (Skip Redirect specifically can interfere with OAuth/login
+  redirect chains)
+
+**Tampermonkey / userscripts**: Tampermonkey itself installs declaratively like any
+other extension, but the userscripts it runs (e.g. 4chan X) live in Tampermonkey's own
+internal storage format, which is undocumented and version-dependent — not safe to
+hand-write. One-time manual step after your first rebuild: open the Tampermonkey
+dashboard and install 4chan X from `https://www.4chan-x.net/builds/4chan-X.user.js`
+(visit the URL directly, or Dashboard → Utilities → Import from URL). Tampermonkey
+auto-updates it from there — this isn't something you need to repeat.
+
+To add/remove an extension, edit `sharedExtensionPackages` /
+`hardenedOnlyExtensionPackages` in `firefox.nix`. List available NUR Firefox addons with:
+```
+nix eval --json 'nixpkgs#nur.repos.rycee.firefox-addons' --apply builtins.attrNames
+```
+(requires the NUR overlay, already wired in via `sharedOverlays` in `flake.nix`).
+
+**Containers** (Multi-Account Containers) are declared per-profile in `firefox.nix`:
+Personal, Work, Banking, Shopping, Reddit, 4chan — same set on both profiles so
+isolation is consistent regardless of which profile you're in.
+
+**Search**: DuckDuckGo (`ddg`) is the declared default engine on both profiles.
+
+**Toolbar**: compact density, bookmarks bar always visible, and uBlock Origin /
+Bitwarden / Multi-Account Containers / Dark Reader pinned to the nav-bar in that
+order via `browser.uiCustomization.state`. This pref is somewhat fragile across Firefox
+versions — if pinned icons look wrong after a rebuild, right-click the toolbar →
+"Customize Toolbar" to fix manually, and make sure Firefox has been fully quit
+(not just the window closed) and relaunched since the last rebuild — a running
+process won't pick up a new toolbar layout.
+
+**General settings** (both profiles, in `sharedUiSettings`):
+- Dracula set as the active browser chrome theme (`extensions.activeThemeID`)
+- Restore previous session on startup; Home button and new tabs are blank
+  (no Firefox-curated/sponsored content)
+- Downloads auto-save to `~/Downloads`, no per-file prompt
+- PDFs open in Firefox's built-in viewer
+- New tabs (including Ctrl+T, not just links) open next to the current tab;
+  Ctrl+Tab cycles most-recently-used instead of visual/position order
+- Firefox's built-in password manager is disabled (`PasswordManagerEnabled = false`
+  policy) — Bitwarden is the single source of truth for saved logins
+- Address/payment-card autofill disabled (Bitwarden handles that data too)
+- Cookie consent banners auto-rejected where Firefox can detect them
+  (`cookiebanners.service.mode`), including in private browsing
+- DRM (Widevine) left at Firefox's default (enabled) so streaming sites keep working
+- Hardware acceleration/performance left at Firefox's auto-detected recommended
+  settings (no known issue to fix)
+- Ctrl+Tab shows preview thumbnails; warns before closing multiple tabs at once
+- Global Privacy Control signal enabled (`privacy.globalprivacycontrol.enabled`)
+- Vertical tabs intentionally left off (kept the standard horizontal tab strip)
+
+**Hardened-profile-only settings**: referrer trimming
+(`network.http.referer.XOriginPolicy`/`XOriginTrimmingPolicy` = 2, arkenfox-style —
+cross-origin referrers are stripped to origin-only). Not applied to `relaxed` to
+avoid extra site-breakage risk there.
+
+**Site → container assignment is intentionally NOT declared in Nix.** Multi-Account
+Containers stores "Always Open This Site In" rules in its own extension storage
+(`browser.storage.local`), keyed by hostname, and each record needs an internal
+`identityMacAddonUUID` the extension generates itself. More importantly,
+home-manager deploys `extensions.settings` as an immutable Nix-store symlink — but
+this extension needs to keep *writing* to that same file for its own normal
+operation. Declaring it in Nix would freeze the file and permanently break your
+ability to add new assignments through the UI afterward, on either profile.
+
+The extension does support real cross-device sync (`browser.storage.sync`, tied to
+Firefox Sync/Firefox Account) — but this profile's `DisableFirefoxAccounts` /
+`DisableAccounts` policies block that. Decide if that tradeoff is worth it; otherwise
+assignments are a one-time manual step per device:
+
+1. Right-click a link (or the tab) → **Open in New Container Tab** → pick the container
+2. In that tab, click the container badge in the address bar → **Always Open in
+   [Container]**
+
+Repeat per site, per device. Current list: _(fill in as you set these up)_.
+
+**Bookmarks**: not declared yet. `firefox.nix` has a commented scaffold
+(`profiles.<name>.bookmarks = { force = true; settings = [...]; }`) ready to fill in;
+left inactive since bookmark content is personal and `force = true` on an empty list
+would wipe existing bookmarks on the next rebuild.
 
 ### Chromium
 
