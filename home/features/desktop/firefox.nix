@@ -40,6 +40,9 @@ with lib; let
     temporary-containers # auto-containerizes anything not explicitly assigned
     sponsorblock
     consent-o-matic
+    reddit-enhancement-suite
+    old-reddit-redirect # RES's features are built for/work best on old Reddit
+    stylus
   ];
 
   # Installed only on the hardened "default" profile: these are the ones

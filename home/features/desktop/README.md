@@ -153,7 +153,8 @@ network fetch from addons.mozilla.org on first launch. `ExtensionSettings."*".in
 
 - Shared (both profiles): Bitwarden, uBlock Origin, Privacy Badger, Dracula theme,
   Dark Reader, xBrowserSync, Multi-Account Containers, Facebook Container, Tampermonkey,
-  Temporary Containers, SponsorBlock, Consent-O-Matic
+  Temporary Containers, SponsorBlock, Consent-O-Matic, Reddit Enhancement Suite,
+  Old Reddit Redirect (RES's features work best on old Reddit), Stylus
 - Hardened-only (`default` profile): LocalCDN, ClearURLs, Cookie AutoDelete,
   CanvasBlocker, Skip Redirect — left off `relaxed` since these are the ones most
   likely to break sites (Skip Redirect specifically can interfere with OAuth/login
