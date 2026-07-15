@@ -132,13 +132,35 @@ with lib; let
     newElementCount = 0;
   };
 
-  # Settings shared by both profiles: toolbar/UI layout plus the pref
-  # that lets Nix-installed extensions self-enable without a manual
-  # about:addons click after first switch.
+  # Settings shared by both profiles: toolbar/UI layout, general browsing
+  # behavior, and the pref that lets Nix-installed extensions self-enable
+  # without a manual about:addons click after first switch.
   sharedUiSettings = {
     "extensions.autoDisableScopes" = 0;
     "browser.uidensity" = 1; # compact
     "browser.uiCustomization.state" = uiCustomizationState;
+
+    # Dracula as the active browser chrome theme.
+    "extensions.activeThemeID" = "{b743f56d-1cc1-4048-8ba6-f9c2ab7aa54d}";
+
+    # Startup: restore the previous session, but Home/Ctrl+Home and new
+    # tabs are blank rather than Firefox's curated/sponsored content.
+    "browser.startup.page" = 3;
+    "browser.startup.homepage" = "about:blank";
+    "browser.newtabpage.enabled" = false;
+
+    # Downloads: auto-save to ~/Downloads, no per-file prompt.
+    "browser.download.folderList" = 1;
+    "browser.download.useDownloadDir" = true;
+
+    # PDFs open in Firefox's built-in viewer.
+    "pdfjs.disabled" = false;
+
+    # Tabs: new tabs (incl. Ctrl+T, not just links) open next to the
+    # current tab; Ctrl+Tab cycles most-recently-used instead of visual
+    # order.
+    "browser.tabs.insertAfterCurrent" = true;
+    "browser.ctrlTab.sortByRecentlyUsed" = true;
   };
 
   # Declarative bookmarks scaffold (currently empty/unused).
@@ -298,6 +320,8 @@ in {
         DisableFirefoxAccounts = true;
         DisableAccounts = true;
         DisableFirefoxScreenshots = true;
+        # Bitwarden is the single source of truth for saved logins.
+        PasswordManagerEnabled = false;
         OverrideFirstRunPage = "";
         OverridePostUpdatePage = "";
         DontCheckDefaultBrowser = true;

@@ -181,7 +181,40 @@ isolation is consistent regardless of which profile you're in.
 Bitwarden / Multi-Account Containers pinned to the nav-bar in that order via
 `browser.uiCustomization.state`. This pref is somewhat fragile across Firefox
 versions — if pinned icons look wrong after a rebuild, right-click the toolbar →
-"Customize Toolbar" to fix manually.
+"Customize Toolbar" to fix manually, and make sure Firefox has been fully quit
+(not just the window closed) and relaunched since the last rebuild — a running
+process won't pick up a new toolbar layout.
+
+**General settings** (both profiles, in `sharedUiSettings`):
+- Dracula set as the active browser chrome theme (`extensions.activeThemeID`)
+- Restore previous session on startup; Home button and new tabs are blank
+  (no Firefox-curated/sponsored content)
+- Downloads auto-save to `~/Downloads`, no per-file prompt
+- PDFs open in Firefox's built-in viewer
+- New tabs (including Ctrl+T, not just links) open next to the current tab;
+  Ctrl+Tab cycles most-recently-used instead of visual/position order
+- Firefox's built-in password manager is disabled (`PasswordManagerEnabled = false`
+  policy) — Bitwarden is the single source of truth for saved logins
+
+**Site → container assignment is intentionally NOT declared in Nix.** Multi-Account
+Containers stores "Always Open This Site In" rules in its own extension storage
+(`browser.storage.local`), keyed by hostname, and each record needs an internal
+`identityMacAddonUUID` the extension generates itself. More importantly,
+home-manager deploys `extensions.settings` as an immutable Nix-store symlink — but
+this extension needs to keep *writing* to that same file for its own normal
+operation. Declaring it in Nix would freeze the file and permanently break your
+ability to add new assignments through the UI afterward, on either profile.
+
+The extension does support real cross-device sync (`browser.storage.sync`, tied to
+Firefox Sync/Firefox Account) — but this profile's `DisableFirefoxAccounts` /
+`DisableAccounts` policies block that. Decide if that tradeoff is worth it; otherwise
+assignments are a one-time manual step per device:
+
+1. Right-click a link (or the tab) → **Open in New Container Tab** → pick the container
+2. In that tab, click the container badge in the address bar → **Always Open in
+   [Container]**
+
+Repeat per site, per device. Current list: _(fill in as you set these up)_.
 
 **Bookmarks**: not declared yet. `firefox.nix` has a commented scaffold
 (`profiles.<name>.bookmarks = { force = true; settings = [...]; }`) ready to fill in;
