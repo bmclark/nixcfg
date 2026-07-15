@@ -49,6 +49,16 @@ with lib; let
     canvasblocker
   ];
 
+  # ExtensionSettings' "*".installation_mode = "blocked" below doesn't just
+  # block *new* manual installs from about:addons -- it actively uninstalls
+  # any extension already present that has no explicit per-ID entry,
+  # including our own Nix-managed ones. Each declared extension needs an
+  # explicit "allowed" entry (derived from its addonId passthru) so the
+  # wildcard block only catches ad-hoc installs, not these.
+  allowedExtensionSettings = listToAttrs (map
+    (pkg: nameValuePair pkg.addonId {installation_mode = "allowed";})
+    (sharedExtensionPackages ++ hardenedOnlyExtensionPackages));
+
   # Multi-Account Containers identities, declared via containers.json.
   # Defined on both profiles so container isolation is consistent
   # regardless of which profile you're browsing in.
@@ -297,10 +307,14 @@ in {
 
         # Block ad-hoc/manual extension installs from about:addons; the
         # extensions actually in use are installed declaratively below via
-        # profiles.<name>.extensions.packages, not through this policy.
-        ExtensionSettings = {
-          "*".installation_mode = "blocked";
-        };
+        # profiles.<name>.extensions.packages. Each of those needs its own
+        # "allowed" entry here too, or Firefox uninstalls it on startup for
+        # matching the wildcard block (see allowedExtensionSettings above).
+        ExtensionSettings =
+          {
+            "*".installation_mode = "blocked";
+          }
+          // allowedExtensionSettings;
       };
 
       # ---- PROFILES ----
