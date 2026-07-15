@@ -36,6 +36,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
   };
@@ -47,6 +51,7 @@
     mcp-nixos,
     nix-homebrew,
     nix-vscode-extensions,
+    nur,
     nixpkgs,
     nixpkgs-stable,
     ...
@@ -71,9 +76,15 @@
       then env
       else "dracula";
     theme = import ./home/themes/${themeName}.nix;
+
+    # NUR provides pkgs.nur.repos.rycee.firefox-addons for declarative
+    # Firefox extension packages (see home/features/desktop/firefox.nix).
+    sharedOverlays = [nur.overlays.default];
+
     mkPkgs = system:
       import nixpkgs {
         inherit system;
+        overlays = sharedOverlays;
       };
   in {
     overlays = {
@@ -134,24 +145,24 @@
     };
 
     nixosConfigurations = let
-      maverickSystem =
-        nixpkgs.lib.nixosSystem {
-          specialArgs = {inherit inputs outputs theme themeName;};
-          modules = [
-            ./hosts/maverick
-            agenix.nixosModules.default
-            home-manager.nixosModules.home-manager
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                backupFileExtension = "hm-backup";
-                extraSpecialArgs = {inherit inputs outputs theme themeName nix-vscode-extensions;};
-                users.bclark = import ./home/bclark/maverick.nix;
-              };
-            }
-          ];
-        };
+      maverickSystem = nixpkgs.lib.nixosSystem {
+        specialArgs = {inherit inputs outputs theme themeName;};
+        modules = [
+          ./hosts/maverick
+          agenix.nixosModules.default
+          home-manager.nixosModules.home-manager
+          {nixpkgs.overlays = sharedOverlays;}
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              backupFileExtension = "hm-backup";
+              extraSpecialArgs = {inherit inputs outputs theme themeName nix-vscode-extensions;};
+              users.bclark = import ./home/bclark/maverick.nix;
+            };
+          }
+        ];
+      };
     in {
       maverick = maverickSystem;
       # Temporary compatibility aliases for the old hostname and factory
@@ -169,6 +180,7 @@
           ./darwin/iceman
           nix-homebrew.darwinModules.nix-homebrew
           home-manager.darwinModules.home-manager
+          {nixpkgs.overlays = sharedOverlays;}
           {
             nix-homebrew = {
               enable = true;

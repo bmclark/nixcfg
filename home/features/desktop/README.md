@@ -137,14 +137,56 @@ On `iceman`, `Ctrl+\`` toggles into and back out of workspace `S`. On first use 
 
 ### Firefox
 
-Firefox is the primary browser.
+Firefox is the primary browser, configured as declaratively as home-manager allows
+(`home/features/desktop/firefox.nix`).
 
 | Profile | Launch | Use for |
 |---------|--------|---------|
 | `default` | `firefox` | Day-to-day browsing with the strongest privacy defaults |
 | `relaxed` | `firefox -P relaxed` | Sites that break under hardened settings |
 
-Shared extensions include Bitwarden, uBlock Origin, Privacy Badger, Dracula, Dark Reader, and xBrowserSync.
+**Extensions** are installed as pinned Nix packages from NUR
+(`pkgs.nur.repos.rycee.firefox-addons`), not via enterprise-policy `.xpi` downloads —
+this means the exact extension build comes from the Nix store and doesn't require a
+network fetch from addons.mozilla.org on first launch. `ExtensionSettings."*".installation_mode
+= "blocked"` still blocks ad-hoc manual installs from `about:addons`.
+
+- Shared (both profiles): Bitwarden, uBlock Origin, Privacy Badger, Dracula theme,
+  Dark Reader, xBrowserSync, Multi-Account Containers, Facebook Container, Tampermonkey
+- Hardened-only (`default` profile): LocalCDN, ClearURLs, Cookie AutoDelete,
+  CanvasBlocker — left off `relaxed` since these are the ones most likely to break sites
+
+**Tampermonkey / userscripts**: Tampermonkey itself installs declaratively like any
+other extension, but the userscripts it runs (e.g. 4chan X) live in Tampermonkey's own
+internal storage format, which is undocumented and version-dependent — not safe to
+hand-write. One-time manual step after your first rebuild: open the Tampermonkey
+dashboard and install 4chan X from `https://www.4chan-x.net/builds/4chan-X.user.js`
+(visit the URL directly, or Dashboard → Utilities → Import from URL). Tampermonkey
+auto-updates it from there — this isn't something you need to repeat.
+
+To add/remove an extension, edit `sharedExtensionPackages` /
+`hardenedOnlyExtensionPackages` in `firefox.nix`. List available NUR Firefox addons with:
+```
+nix eval --json 'nixpkgs#nur.repos.rycee.firefox-addons' --apply builtins.attrNames
+```
+(requires the NUR overlay, already wired in via `sharedOverlays` in `flake.nix`).
+
+**Containers** (Multi-Account Containers) are declared per-profile in `firefox.nix`:
+Personal, Work, Banking, Shopping, Reddit, 4chan — same set on both profiles so
+isolation is consistent regardless of which profile you're in.
+
+**Search**: DuckDuckGo (`ddg`) is the declared default engine on both profiles.
+
+**Toolbar**: compact density, bookmarks bar always visible, and uBlock Origin /
+Bitwarden / Multi-Account Containers pinned to the nav-bar in that order via
+`browser.uiCustomization.state`. This pref is somewhat fragile across Firefox
+versions — if pinned icons look wrong after a rebuild, right-click the toolbar →
+"Customize Toolbar" to fix manually.
+
+**Bookmarks**: not declared yet. `firefox.nix` has a commented scaffold
+(`profiles.<name>.bookmarks = { force = true; settings = [...]; }`) ready to fill in;
+left inactive since bookmark content is personal and `force = true` on an empty list
+would wipe existing bookmarks on the next rebuild.
 
 ### Chromium
 
