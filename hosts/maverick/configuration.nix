@@ -68,6 +68,11 @@
 
   # ----- ThinkPad X1 Carbon Gen 6 ------------------------------------------
 
+  # Full linux-firmware (microcode completeness, Intel AC 8265 Wi-Fi firmware).
+  # Already effectively on via other defaults, but set explicitly so it doesn't
+  # depend on that.
+  hardware.enableRedistributableFirmware = true;
+
   # TLP: battery charge thresholds + power management
   services.tlp = {
     enable = true;
@@ -129,6 +134,16 @@
   # Fingerprint reader (Synaptics on X1C6)
   # Enroll with: fprintd-enroll
   services.fprintd.enable = true;
+
+  # TrackPoint tuning (device name confirmed via /proc/bus/input/devices).
+  # X1C6's TrackPoint is RMI4/I2C, not classic PS/2, so only a subset of
+  # hardware.trackpoint's sysfs attributes actually exist on this device
+  # (sensitivity, press_to_select, rate, resync_time) — no speed/inertia/reach/etc.
+  hardware.trackpoint = {
+    enable = true;
+    device = "TPPS/2 Elan TrackPoint";
+    sensitivity = 200; # default is 128; higher = more responsive to light pressure
+  };
 
   # Brightness control (for waybar backlight module)
   environment.systemPackages = with pkgs; [
