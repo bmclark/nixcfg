@@ -366,6 +366,12 @@ in {
           isDefault = true;
           settings = hardenedSettings;
           inherit search containers;
+          # Multi-Account Containers rewrites containers.json itself (e.g.
+          # self-healing internal UUIDs), replacing the Nix-managed symlink
+          # with a plain file. Without this, home-manager tries to back
+          # that up on the next switch and can fail if a stale backup from
+          # a previous activation already exists at that path.
+          containersForce = true;
           extensions.packages = sharedExtensionPackages ++ hardenedOnlyExtensionPackages;
         };
 
@@ -375,6 +381,7 @@ in {
           id = 1;
           settings = relaxedSettings;
           inherit search containers;
+          containersForce = true;
           extensions.packages = sharedExtensionPackages;
         };
       };
