@@ -103,10 +103,11 @@ with lib; let
     order = ["ddg"];
   };
 
-  # Toolbar layout: pin uBlock Origin, Bitwarden, and Multi-Account
-  # Containers in that order; everything else lives in the extensions
-  # overflow menu. Widget IDs are derived from each extension's addon ID
-  # via Firefox's makeWidgetId() (lowercase, non [a-z0-9_-] chars -> "_").
+  # Toolbar layout: pin uBlock Origin, Bitwarden, Multi-Account Containers,
+  # and Dark Reader (frequently toggled per-site) in that order; everything
+  # else lives in the extensions overflow menu. Widget IDs are derived from
+  # each extension's addon ID via Firefox's makeWidgetId() (lowercase, non
+  # [a-z0-9_-] chars -> "_").
   #
   # This pref is somewhat fragile across Firefox versions -- if the pinned
   # icons don't come out exactly right after first launch, right-click the
@@ -124,6 +125,7 @@ with lib; let
         "ublock0_raymondhill_net-browser-action" # uBlock Origin
         "_446900e4-71c2-419f-a6a7-df9c091e268b_-browser-action" # Bitwarden
         "_testpilot-containers-browser-action" # Multi-Account Containers
+        "addon_darkreader_org-browser-action" # Dark Reader
         "unified-extensions-button"
         "downloads-button"
       ];

@@ -178,8 +178,8 @@ isolation is consistent regardless of which profile you're in.
 **Search**: DuckDuckGo (`ddg`) is the declared default engine on both profiles.
 
 **Toolbar**: compact density, bookmarks bar always visible, and uBlock Origin /
-Bitwarden / Multi-Account Containers pinned to the nav-bar in that order via
-`browser.uiCustomization.state`. This pref is somewhat fragile across Firefox
+Bitwarden / Multi-Account Containers / Dark Reader pinned to the nav-bar in that
+order via `browser.uiCustomization.state`. This pref is somewhat fragile across Firefox
 versions — if pinned icons look wrong after a rebuild, right-click the toolbar →
 "Customize Toolbar" to fix manually, and make sure Firefox has been fully quit
 (not just the window closed) and relaunched since the last rebuild — a running
