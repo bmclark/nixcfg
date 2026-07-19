@@ -71,6 +71,8 @@ These are the extra bindings provided on `maverick`:
 | `Ctrl+Alt+O` | OCR selected screen region to clipboard |
 | `Ctrl+V` | Clipboard history picker |
 | `Ctrl+Shift+C` | Pick a screen color to the clipboard |
+| `Ctrl+Shift+E` | Emoji picker (copies selection to clipboard) |
+| `Ctrl+Shift+D` | Web search launcher (pick a target, then type a query) |
 
 ### macOS-specific Aerospace bindings
 
@@ -122,7 +124,7 @@ That means a good default workflow is:
 
 ### Scratch access
 
-On `maverick`, `Ctrl+\`` opens a terminal on a special hidden workspace that drops down from the top of the screen.
+On `maverick`, `Ctrl+\`` opens a terminal on a special hidden workspace that drops down from the top of the screen. It's implemented via the pyprland scratchpad plugin (`~/.config/hypr/pyprland.toml`) and hides itself automatically when it loses focus, guake-style.
 
 Use it for:
 - quick commands
@@ -323,6 +325,10 @@ The session follows a staged idle chain:
 - displays power down after 20 minutes
 
 Use `Ctrl+L` when leaving the machine instead of waiting for idle.
+
+### Power Menu (wlogout)
+
+`Ctrl+Escape` opens a Dracula-themed power menu (lock, logout, suspend, hibernate, reboot, shutdown), each button color-coded to match its waybar/dunst counterpart (e.g. red for shutdown, purple for lock).
 
 ## macOS Notes
 

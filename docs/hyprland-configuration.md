@@ -48,7 +48,7 @@ Hyprland follows the shared keyboard strategy: logical `Ctrl` lives on `CapsLock
 | Ctrl+Shift+1..0 | Move window to workspace 1..10 |
 | Ctrl+Left | Previous workspace |
 | Ctrl+Right | Next workspace |
-| CapsLock+Grave | Toggle the guake-style dropdown terminal (top third) |
+| CapsLock+Grave | Toggle the guake-style dropdown terminal (pyprland scratchpad, hides on focus loss) |
 | Ctrl+Mouse Wheel | Cycle workspaces |
 
 ### Resize Mode
@@ -72,6 +72,12 @@ Hyprland follows the shared keyboard strategy: logical `Ctrl` lives on `CapsLock
 | Physical key | Action |
 |----------|--------|
 | Ctrl+Shift+W | Set a random wallpaper |
+
+### Launchers
+| Physical key | Action |
+|----------|--------|
+| Ctrl+Shift+E | Emoji picker (bemoji, copies selection to clipboard) |
+| Ctrl+Shift+D | Web search launcher (pick a target, then type a query) |
 
 ### Media Keys
 | Physical key | Action |

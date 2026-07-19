@@ -54,6 +54,11 @@ in {
     mkEnableOption "wayland extra tools and config";
 
   config = mkIf cfg.enable {
+    # bemoji auto-detects a menu backend, but pin it to wofi so it matches
+    # every other launcher surface instead of falling back to whatever else
+    # happens to be on PATH.
+    home.sessionVariables.BEMOJI_PICKER_CMD = "wofi --dmenu --prompt Emoji";
+
     home.pointerCursor = {
       enable = true;
       gtk.enable = true;
@@ -74,6 +79,10 @@ in {
       wl-mirror
       wl-clipboard
       hyprpicker
+      bemoji # wofi-backed emoji picker (Ctrl+Shift+E)
+      pyprland # scratchpad daemon (dropdown terminal, Ctrl+`)
+      wlopm # unambiguous DPMS on/off/toggle (used by hypridle below instead of
+            # guessing at Hyprland's Lua dispatcher argument shape for dpms)
 
       # Input & remote tooling
       wtype
@@ -190,38 +199,21 @@ in {
       '';
     };
 
-    home.file.".local/bin/dropdown-terminal" = {
-      executable = true;
-      text = ''
-        #!/usr/bin/env bash
-        # Guake-style dropdown terminal using Hyprland's special workspace.
-        # Sizes to top third of screen and slides down from top.
+    # Guake-style dropdown terminal (Ctrl+`), implemented via the pyprland
+    # scratchpad plugin instead of hand-rolled hyprctl/python address-polling.
+    # `unfocus = "hide"` gives it the guake behavior of hiding when it loses focus.
+    xdg.configFile."hypr/pyprland.toml".text = ''
+      [pyprland]
+      plugins = ["scratchpads"]
 
-        get_addr() {
-          hyprctl clients -j | ${pkgs.python3}/bin/python3 -c "
-        import json, sys
-        for c in json.load(sys.stdin):
-            if 'special:terminal' in str(c.get('workspace', {})):
-                print(c['address']); break
-        "
-        }
-
-        ADDR=$(get_addr)
-        if [[ -n "$ADDR" ]]; then
-          hyprctl dispatch togglespecialworkspace terminal
-        else
-          hyprctl dispatch togglespecialworkspace terminal
-          sleep 0.4
-          ADDR=$(get_addr)
-          if [[ -n "$ADDR" ]]; then
-            hyprctl --batch "\
-              dispatch floatwindow address:$ADDR;\
-              dispatch resizewindowpixel exact 1920 360,address:$ADDR;\
-              dispatch movewindowpixel exact 0 0,address:$ADDR"
-          fi
-        fi
-      '';
-    };
+      [scratchpads.term]
+      command = "ghostty --class=ghostty-dropterm"
+      class = "ghostty-dropterm"
+      animation = "fromTop"
+      size = "75% 45%"
+      margin = 8
+      unfocus = "hide"
+    '';
 
     home.file.".local/bin/cliphist-wofi" = {
       executable = true;
@@ -229,6 +221,70 @@ in {
         #!/usr/bin/env bash
         set -euo pipefail
         cliphist list | wofi --dmenu --prompt "Clipboard" | cliphist decode | wl-copy
+      '';
+    };
+
+    # Two-step wofi launcher: pick a search target, then type a query.
+    # Bound to Ctrl+Shift+D (pairs with Ctrl+D for the app launcher).
+    home.file.".local/bin/web-search-wofi" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        declare -A urls=(
+          ["Search (DuckDuckGo)"]="https://duckduckgo.com/?q="
+          ["nixpkgs (unstable)"]="https://search.nixos.org/packages?channel=unstable&query="
+          ["NixOS options"]="https://search.nixos.org/options?channel=unstable&query="
+          ["YouTube"]="https://www.youtube.com/results?search_query="
+          ["Arch Wiki"]="https://wiki.archlinux.org/index.php?search="
+          ["GitHub"]="https://github.com/search?q="
+        )
+
+        target=$(printf '%s\n' "''${!urls[@]}" | sort | wofi --dmenu --prompt "Search where?")
+        [[ -z "''${target:-}" ]] && exit 0
+
+        query=$(printf '%s' "" | wofi --dmenu --prompt "Search ''${target}")
+        [[ -z "''${query:-}" ]] && exit 0
+
+        xdg-open "''${urls[$target]}''${query}"
+      '';
+    };
+
+    # Scans recent journalctl output for the home-manager "would be clobbered
+    # by backing up" error (files matching flake.nix's backupFileExtension =
+    # "hm-backup") and offers to remove the stale copies blocking a rebuild.
+    home.file.".local/bin/hm-backup-clean" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        time_range="''${1:-30m}"
+        log_dir="$HOME/.local/state/hm-backup-clean"
+        log_file="$log_dir/$(date +%Y-%m-%d_%H-%M-%S).log"
+
+        files=$(journalctl --user --since "-''${time_range}" -xe 2>/dev/null \
+          | grep -F 'hm-activate' \
+          | grep -oP "(?<=would be clobbered by backing up ').*(?=')" || true)
+
+        if [[ -z "$files" ]]; then
+          echo "No home-manager backup conflicts found in the last ''${time_range}."
+          exit 0
+        fi
+
+        echo "The following .hm-backup files are blocking a home-manager rebuild:"
+        echo "$files"
+        echo
+
+        read -r -p "Remove these files? [y/N] " confirm
+        if [[ "''${confirm,,}" == "y" ]]; then
+          mkdir -p "$log_dir"
+          echo "$files" | xargs -r rm -v | tee "$log_file"
+          echo "Removed. Log: $log_file"
+        else
+          echo "Left untouched."
+        fi
       '';
     };
 
@@ -435,13 +491,85 @@ in {
       }
     '';
 
+    # --- Power Menu (wlogout) -------------------------------------------------
+    # No home-manager `programs.wlogout` module exists, so this is hand-wired
+    # the same way as hyprlock above: raw layout/style files read directly by
+    # the wlogout binary. Triggered via Ctrl+Escape (`wlogout -p layer-shell`).
+    # wlogout's parser reads a sequence of concatenated top-level JSON objects,
+    # NOT a JSON array — wrapping these in `[...]` with commas (what
+    # builtins.toJSON on a list produces) fails with "Invalid JSON Data".
+    xdg.configFile."wlogout/layout".text = lib.concatMapStringsSep "\n" builtins.toJSON [
+      {label = "lock"; action = "hyprlock"; text = "Lock"; keybind = "l";}
+      # hyprland.nix uses configType = "lua" (0.55.2+ API), which changes what
+      # `hyprctl dispatch` accepts: it now evaluates its argument as a Lua
+      # dispatcher expression (e.g. hl.dsp.exit()) rather than the classic bare
+      # dispatcher name -- `hyprctl dispatch exit` fails silently under it.
+      {label = "logout"; action = ''hyprctl dispatch "hl.dsp.exit()"''; text = "Logout"; keybind = "e";}
+      {label = "suspend"; action = "systemctl suspend"; text = "Suspend"; keybind = "u";}
+      {label = "hibernate"; action = "systemctl hibernate"; text = "Hibernate"; keybind = "h";}
+      {label = "reboot"; action = "systemctl reboot"; text = "Reboot"; keybind = "r";}
+      {label = "shutdown"; action = "systemctl poweroff"; text = "Shutdown"; keybind = "s";}
+    ];
+
+    xdg.configFile."wlogout/style.css".text = ''
+      * {
+        font-family: "JetBrainsMono Nerd Font", monospace;
+        /* GTK's default theme paints a background-image gradient on buttons
+           that sits on top of background-color and hides it -- clear it here
+           so our colors are actually visible instead of the theme default. */
+        background-image: none;
+        transition: all 0.2s ease;
+      }
+
+      window {
+        background-color: ${rgba palette.bg "cc"};
+      }
+
+      button {
+        color: ${palette.fg};
+        background-color: ${rgba palette.selection "ee"};
+        border: 2px solid ${palette.comment};
+        border-radius: 16px;
+        margin: 14px;
+        font-size: 16px;
+      }
+
+      button:focus, button:active, button:hover {
+        background-color: ${rgba palette.selection "dd"};
+      }
+
+      #lock { border-color: ${palette.purple}; }
+      #lock:focus, #lock:active, #lock:hover { border-color: ${palette.purple}; color: ${palette.purple}; }
+
+      #logout { border-color: ${palette.pink}; }
+      #logout:focus, #logout:active, #logout:hover { border-color: ${palette.pink}; color: ${palette.pink}; }
+
+      #suspend { border-color: ${palette.cyan}; }
+      #suspend:focus, #suspend:active, #suspend:hover { border-color: ${palette.cyan}; color: ${palette.cyan}; }
+
+      #hibernate { border-color: ${palette.green}; }
+      #hibernate:focus, #hibernate:active, #hibernate:hover { border-color: ${palette.green}; color: ${palette.green}; }
+
+      #reboot { border-color: ${palette.orange}; }
+      #reboot:focus, #reboot:active, #reboot:hover { border-color: ${palette.orange}; color: ${palette.orange}; }
+
+      #shutdown { border-color: ${palette.red}; }
+      #shutdown:focus, #shutdown:active, #shutdown:hover { border-color: ${palette.red}; color: ${palette.red}; }
+    '';
+
     # --- Idle Management ----------------------------------------------------
     services.hypridle = {
       enable = true;
       settings = {
         general = {
           lock_cmd = "pidof hyprlock || hyprlock";
-          after_sleep_cmd = "hyprctl dispatch dpms on";
+          # Uses wlopm (zwlr-output-power-management-v1) instead of
+          # `hyprctl dispatch`: under configType = "lua" the classic bare
+          # dispatcher name (`hyprctl dispatch dpms on`) fails silently, and
+          # the Lua equivalent (`hl.dsp.dpms(...)`) turned out to behave like
+          # an unconditional toggle regardless of the argument passed to it in
+          # live testing -- not a safe primitive to build an idle chain on.
+          after_sleep_cmd = "wlopm --on '*'";
         };
         listener = [
           # Dim screen after 5 minutes
@@ -458,8 +586,8 @@ in {
           # DPMS off after 20 minutes
           {
             timeout = 1200;
-            on-timeout = "hyprctl dispatch dpms off";
-            on-resume = "hyprctl dispatch dpms on";
+            on-timeout = "wlopm --off '*'";
+            on-resume = "wlopm --on '*'";
           }
         ];
       };
@@ -863,8 +991,8 @@ in {
             all-outputs = true;
             on-click = "activate";
             format = "{icon}";
-            on-scroll-up = "hyprctl dispatch workspace e+1";
-            on-scroll-down = "hyprctl dispatch workspace e-1";
+            on-scroll-up = ''hyprctl dispatch "hl.dsp.focus({workspace = 'e+1'})"'';
+            on-scroll-down = ''hyprctl dispatch "hl.dsp.focus({workspace = 'e-1'})"'';
             format-icons = {
               "1" = "";
               "2" = "";

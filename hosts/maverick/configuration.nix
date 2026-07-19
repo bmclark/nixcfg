@@ -54,6 +54,26 @@
     xwayland.enable = true;
   };
 
+  # ----- Nix Helper (nh) -----------------------------------------------------
+  # Nicer `nixos-rebuild`/`home-manager switch` output and generation diffing.
+  # Its own periodic-clean timer is left disabled: hosts/common/default.nix
+  # already runs nix.gc.automatic (daily, 30d retention), and enabling both
+  # produces a NixOS eval warning about the two colliding.
+  programs.nh = {
+    enable = true;
+    flake = "/home/bclark/nixcfg";
+  };
+
+  # ----- Printing --------------------------------------------------------
+  # CUPS + Avahi mDNS discovery for network/AirPrint-style printers.
+  services.printing.enable = true;
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
+  services.ipp-usb.enable = true;
+
   # --- Login Manager (greetd + tuigreet) ---
   services.greetd = {
     enable = true;

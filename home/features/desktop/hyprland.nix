@@ -148,6 +148,7 @@ in {
           {name = "blur-gtk"; match.namespace = "gtk-layer-shell"; blur = true; ignore_alpha = 0.1;}
           {name = "blur-waybar"; match.namespace = "waybar"; blur = true; ignore_alpha = 0.1;}
           {name = "blur-wofi"; match.namespace = "wofi"; blur = true; ignore_alpha = 0.1;}
+          {name = "blur-wlogout"; match.namespace = "wlogout"; blur = true; ignore_alpha = 0.1;}
         ];
 
         # --- Window Rules (→ hl.window_rule({...})) --------------------------
@@ -158,6 +159,7 @@ in {
 
           # Application-specific float rules
           {name = "float-apps"; match.class = "^(Wofi|dunst|Viewnior|feh|blueman-manager)$"; float = true;}
+          {name = "float-dropterm"; match.class = "^(ghostty-dropterm)$"; float = true;}
           {name = "float-audio"; match.class = "^(pavucontrol(-qt)?|org.gnome.FileRoller)$"; float = true;}
           {name = "no-anim-wofi"; match.class = "^(Wofi)$"; no_anim = true;}
 
@@ -199,6 +201,7 @@ in {
           hl.exec_cmd("awww-daemon & sleep 0.5 && $HOME/.local/bin/wallpaper-random")
           hl.exec_cmd("waybar")
           hl.exec_cmd("blueman-applet")
+          hl.exec_cmd("pypr &") -- scratchpad daemon for the dropdown terminal
         end)
 
         -- Core launcher bindings
@@ -221,11 +224,18 @@ in {
         hl.bind(mainMod .. " + up",     hl.dsp.focus({direction = "up"}))
         hl.bind(mainMod .. " + down",   hl.dsp.focus({direction = "down"}))
 
-        -- Dropdown terminal (CapsLock+` = Ctrl+grave via keyd)
-        hl.bind("CTRL + grave", hl.dsp.exec_cmd("$HOME/.local/bin/dropdown-terminal"))
+        -- Dropdown terminal (CapsLock+` = Ctrl+grave via keyd), via pyprland scratchpad.
+        -- pypr is normally started by the hyprland.start hook below, but that hook only
+        -- runs on a full Hyprland startup, not a config-only reload (e.g. after a
+        -- home-manager switch) -- so self-heal here in case the daemon isn't up yet.
+        hl.bind("CTRL + grave", hl.dsp.exec_cmd("pgrep -x pypr >/dev/null || (pypr & sleep 0.3); pypr toggle term"))
 
         -- Wallpaper controls
         hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("$HOME/.local/bin/wallpaper-random"))
+
+        -- Emoji picker (copies to clipboard) and web search launcher
+        hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("bemoji"))
+        hl.bind(mainMod .. " + SHIFT + D", hl.dsp.exec_cmd("$HOME/.local/bin/web-search-wofi"))
 
         -- CUA / application bindings
         hl.bind("ALT + F4", hl.dsp.window.close())
