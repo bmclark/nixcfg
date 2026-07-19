@@ -124,7 +124,7 @@ That means a good default workflow is:
 
 ### Scratch access
 
-On `maverick`, `Ctrl+\`` opens a terminal on a special hidden workspace that drops down from the top of the screen. It's implemented via the pyprland scratchpad plugin (`~/.config/hypr/pyprland.toml`) and hides itself automatically when it loses focus, guake-style.
+On `maverick`, `Ctrl+\`` opens a terminal on a special hidden workspace that drops down from the top of the screen. It's implemented via the pyprland scratchpad plugin (`~/.config/pypr/config.toml`) and hides itself automatically when it loses focus, guake-style.
 
 Use it for:
 - quick commands

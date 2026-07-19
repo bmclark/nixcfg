@@ -202,7 +202,10 @@ in {
     # Guake-style dropdown terminal (Ctrl+`), implemented via the pyprland
     # scratchpad plugin instead of hand-rolled hyprctl/python address-polling.
     # `unfocus = "hide"` gives it the guake behavior of hiding when it loses focus.
-    xdg.configFile."hypr/pyprland.toml".text = ''
+    # Canonical config path is ~/.config/pypr/config.toml as of pyprland 3.x;
+    # ~/.config/hypr/pyprland.toml is a legacy fallback that now triggers a
+    # "move your config" toast notification on every pypr launch.
+    xdg.configFile."pypr/config.toml".text = ''
       [pyprland]
       plugins = ["scratchpads"]
 
