@@ -105,9 +105,12 @@ can be re-created with `virsh define`.
    the 1650 (01:00.0), and its audio (01:00.1). No ACS override needed.
    **Passthrough design is a GO.**
 2. Image the Windows 10 disk (`/dev/sdb`, PNY 250GB, self-contained GPT
-   layout) to `/dev/sdc` (500GB HDD) or external storage — safety net and
-   VM seed. Disk plan: sda → NixOS, sdb stays Windows (pass to VM by block
-   device or convert to qcow2), sdc → bulk storage.
+   layout) as a qcow2 (`qemu-img convert -O qcow2 /dev/sdb .../win10.qcow2`)
+   — this file is both the safety net and the VM disk. Copy to Tower over
+   the tailnet with checksum verification. Full runbook:
+   `docs/runbook-hangman-p2v.md`. Disk plan: sda → NixOS, sdb stays
+   untouched as cold original until the VM is proven, sdc → image target /
+   bulk storage.
 3. Fresh NixOS install on the Optiplex from this flake (`hosts/hangman`):
    disko wipe of sda, `nixos-install --flake .#hangman`.
 4. VFIO + libvirt + Windows guest, iterate.
