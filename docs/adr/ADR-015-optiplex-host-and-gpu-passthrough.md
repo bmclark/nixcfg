@@ -72,8 +72,13 @@ can be re-created with `virsh define`.
 
 ## Migration order
 
-1. Verify IOMMU groups on the Optiplex under the current Aurora install
-   (cheap, no changes: boot with `intel_iommu=on`, read `/sys/kernel/iommu_groups`).
-2. Image the Windows 10 install to a backup disk (safety net, also the VM seed).
+1. ~~Verify IOMMU groups~~ — preflight (2026-10-13) confirmed VT-d enabled in
+   BIOS (DMAR parsed, IRQ remapping active). Remaining: reboot Aurora with
+   `intel_iommu=on` on the cmdline and inspect `/sys/kernel/iommu_groups`
+   for group isolation of 01:00.0/01:00.1.
+2. Image the Windows 10 disk (`/dev/sdb`, PNY 250GB, self-contained GPT
+   layout) to `/dev/sdc` (500GB HDD) or external storage — safety net and
+   VM seed. Disk plan: sda → NixOS, sdb stays Windows (pass to VM by block
+   device or convert to qcow2), sdc → bulk storage.
 3. Fresh NixOS install on the Optiplex from this flake (`hosts/optiplex`).
 4. VFIO + libvirt + Windows guest, iterate.

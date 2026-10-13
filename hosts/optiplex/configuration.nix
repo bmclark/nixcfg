@@ -24,13 +24,14 @@
   hardware.cpu.intel.updateMicrocode = true;
 
   # --- VFIO: bind GTX 1650 + its HDMI audio to vfio-pci at boot ------------
-  # IDs must be read from `lspci -nn` on the real hardware before first boot.
-  # Placeholder uses the common GTX 1650 IDs (10de:1f82) — VERIFY.
+  # IDs confirmed via lspci -nn on hardware (2026-10-13 preflight):
+  #   01:00.0 VGA  TU117 [GeForce GTX 1650]  10de:1f82
+  #   01:00.1 Audio TU117 HD audio           10de:10fa
   boot.kernelParams = [
     "intel_iommu=on"
-    "vfio-pci.ids=10de:1f82,10de:10f9"
+    "vfio-pci.ids=10de:1f82,10de:10fa"
   ];
-  boot.extraModprobeConfig = "options vfio-pci ids=10de:1f82,10de:10f9";
+  boot.extraModprobeConfig = "options vfio-pci ids=10de:1f82,10de:10fa";
   boot.initrd.kernelModules = ["vfio_pci" "vfio" "vfio_iommu_type1" "vfio_virqfd"];
 
   # --- Virtualisation -------------------------------------------------------
