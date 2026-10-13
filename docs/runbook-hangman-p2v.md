@@ -19,7 +19,7 @@ All Aurora-side steps run with Windows NOT running (booted into Aurora).
 ```bash
 export SDC_MNT=/run/media/bryan/7748b39d-220e-4e8f-966f-740e8ec18c98
 export TOWER=bryan@tower
-export TOWER_PATH=/mnt/user/backups/hangman-p2v   # adjust to real share
+export TOWER_PATH=/mnt/user/Bryan/win-10-backup   # SMB share Bryan/win-10-backup
 
 bash p2v.sh convert   # phase 1
 bash p2v.sh check     # phase 1 verify
