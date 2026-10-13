@@ -100,10 +100,10 @@ can be re-created with `virsh define`.
 
 ## Migration order
 
-1. ~~Verify IOMMU groups~~ — preflight (2026-10-13) confirmed VT-d enabled in
-   BIOS (DMAR parsed, IRQ remapping active). Remaining: reboot Aurora with
-   `intel_iommu=on` on the cmdline and inspect `/sys/kernel/iommu_groups`
-   for group isolation of 01:00.0/01:00.1.
+1. ~~Verify IOMMU groups~~ — DONE (2026-10-13, post-`intel_iommu=on` reboot):
+   IOMMU active; group 1 contains only the root port (00:01.0, a bridge),
+   the 1650 (01:00.0), and its audio (01:00.1). No ACS override needed.
+   **Passthrough design is a GO.**
 2. Image the Windows 10 disk (`/dev/sdb`, PNY 250GB, self-contained GPT
    layout) to `/dev/sdc` (500GB HDD) or external storage — safety net and
    VM seed. Disk plan: sda → NixOS, sdb stays Windows (pass to VM by block

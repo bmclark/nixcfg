@@ -30,15 +30,17 @@ fi
 section "3. Verdict for 01:00.0 / 01:00.1 (GTX 1650 + audio)"
 GPU_GROUP=$(basename "$(readlink -f /sys/bus/pci/devices/0000:01:00.0/iommu_group)")
 AUD_GROUP=$(basename "$(readlink -f /sys/bus/pci/devices/0000:01:00.1/iommu_group)")
-GPU_GROUP_DEVS=$(ls /sys/kernel/iommu_groups/"$GPU_GROUP"/devices/ | wc -l)
-echo "GPU group: $GPU_GROUP ($GPU_GROUP_DEVS device(s))"
+# Non-bridge devices in the GPU's group (bridges may share the group safely).
+REAL_DEVS=$(for d in /sys/kernel/iommu_groups/"$GPU_GROUP"/devices/*; do
+  lspci -nns "${d##*/}" 2>/dev/null | grep -vE '\[0604\]' ; done | wc -l)
+echo "GPU group: $GPU_GROUP ($REAL_DEVS non-bridge device(s))"
 echo "Audio group: $AUD_GROUP"
-if [ "$GPU_GROUP" = "$AUD_GROUP" ] && [ "$GPU_GROUP_DEVS" -eq 2 ]; then
-  echo "VERDICT: CLEAN — 1650 + audio isolated in their own group. Passthrough is a go."
-elif [ "$GPU_GROUP" != "$AUD_GROUP" ]; then
+if [ "$GPU_GROUP" != "$AUD_GROUP" ]; then
   echo "VERDICT: WARNING — GPU and audio are in DIFFERENT groups. Workable but check both groups' members."
+elif [ "$REAL_DEVS" -eq 2 ]; then
+  echo "VERDICT: CLEAN — only the 1650 + its audio (plus bridges) in the group. Passthrough is a go."
 else
-  echo "VERDICT: DIRTY — group $GPU_GROUP has $GPU_GROUP_DEVS devices. See section 2 for what else is in it."
+  echo "VERDICT: DIRTY — group $GPU_GROUP has $REAL_DEVS real devices. See section 2."
   echo "Options: ACS override (pcie_acs_override=pcie_acs_multifunction) or different slot."
 fi
 
