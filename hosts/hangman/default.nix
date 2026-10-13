@@ -1,4 +1,4 @@
-# Entry point for the optiplex NixOS configuration.
+# Entry point for the hangman NixOS configuration.
 # DRAFT — hardware-configuration.nix must be generated at install time.
 {...}: {
   imports = [

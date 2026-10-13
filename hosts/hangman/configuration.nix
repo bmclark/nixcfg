@@ -1,5 +1,5 @@
 # Dell Optiplex 9020 (i7-4790, 32 GB RAM, GTX 1650 -> VFIO passthrough).
-# DRAFT — see docs/adr/ADR-015-optiplex-host-and-gpu-passthrough.md.
+# DRAFT — see docs/adr/ADR-015-hangman-host-and-gpu-passthrough.md.
 # Host graphics: Intel HD 4600 (i915). The 1650 is reserved for the Windows guest.
 {
   pkgs,
@@ -9,7 +9,7 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  networking.hostName = "optiplex";
+  networking.hostName = "hangman";
   networking.networkmanager.enable = true;
 
   time.timeZone = "America/New_York";

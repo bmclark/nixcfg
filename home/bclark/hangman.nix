@@ -1,4 +1,4 @@
-# Home-manager config for bclark on optiplex (DRAFT).
+# Home-manager config for bclark on hangman (DRAFT).
 # Desktop feature set mirrors maverick; no laptop-specific bits.
 {pkgs, ...}: {
   # Shared base (username, homeDirectory, stateVersion) lives in ./home.nix.
