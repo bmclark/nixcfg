@@ -14,6 +14,22 @@ All Aurora-side steps run with Windows NOT running (booted into Aurora).
 
 ## Phase 1 — qcow2 image (Aurora)
 
+### 1.0 Use the helper
+
+```bash
+export SDC_MNT=/run/media/bryan/7748b39d-220e-4e8f-966f-740e8ec18c98
+export TOWER=bryan@tower
+export TOWER_PATH=/mnt/user/backups/hangman-p2v   # adjust to real share
+
+bash p2v.sh convert   # phase 1
+bash p2v.sh check     # phase 1 verify
+bash p2v.sh tower      # phase 2, hashes both sides and fails on mismatch
+bash p2v.sh all        # everything in order
+```
+
+Helper lives at `hosts/hangman/p2v.sh` in this repo. Manual equivalents
+below.
+
 ### 1.1 Prereqs
 
 ```bash
