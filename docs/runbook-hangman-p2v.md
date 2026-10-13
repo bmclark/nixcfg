@@ -1,50 +1,50 @@
-# Runbook: Windows 10 P2V image + Tower backup (hangman prep)
+# Runbook: hangman prep — Windows 10 LTSC P2V image, Tower backups
 
-Order matters: image first, verify, then copy to Tower. Do everything
-booted into Aurora with Windows NOT running.
+Complete pre-install checklist for the Optiplex (hangman) conversion.
+Everything here happens BEFORE NixOS touches sda. Order matters.
 
-## 0. Prereqs (on Aurora)
+Safety layers when done:
+1. `win10.qcow2` on sdc — machine image (backup + future VM disk)
+2. `win10.qcow2` on Tower — off-box copy of the same
+3. File History on Tower — versioned user files (file-level recovery)
+
+All Aurora-side steps run with Windows NOT running (booted into Aurora).
+
+---
+
+## Phase 1 — qcow2 image (Aurora)
+
+### 1.1 Prereqs
 
 ```bash
-# qemu-img comes with the virt stack; check first
 qemu-img --version || sudo rpm-ostree install qemu-img
+df -h /path/to/sdc/mountpoint    # want ~150G free (qcow2 is sparse)
 ```
 
-Check free space on sdc (need roughly the *used* size of sdb, since qcow2
-is sparse — check with `sudo fdisk -l /dev/sdb` usage or just ensure
-~150G free):
-
-```bash
-df -h /path/to/sdc/mountpoint
-```
-
-## 1. Convert sdb to qcow2
+### 1.2 Convert sdb → qcow2 (30–90 min, unattended)
 
 ```bash
 sudo qemu-img convert -p -O qcow2 /dev/sdb /path/to/sdc/win10.qcow2
 sudo chown bryan: /path/to/sdc/win10.qcow2
 ```
 
-- `-p` = progress bar. Takes 30–90 min depending on disk speed.
-- No `-c` (compression): qcow2 is already sparse; compression slows VM I/O.
-- The image is BOTH the backup and the future VM disk.
+No `-c` compression: qcow2 is already sparse; compression slows VM I/O.
 
-## 2. Verify
+### 1.3 Verify
 
 ```bash
-qemu-img check /path/to/sdc/win10.qcow2
-qemu-img info /path/to/sdc/win10.qcow2
+qemu-img check /path/to/sdc/win10.qcow2   # must report no errors
+qemu-img info /path/to/sdc/win10.qcow2    # virtual ~232G, disk size = used
 ```
 
-`check` must report no errors. `info` should show `virtual size: 232 GiB`
-and a much smaller `disk size` (actual used). The definitive verification
-is booting it as a VM after hangman is installed (needs OVMF/UEFI firmware
-— the install is GPT) — do that before wiping anything or relying on it.
+Definitive verification = booting it as a VM after hangman is installed
+(UEFI/OVMF firmware — the install is GPT; chipset Q35).
 
-## 3. Back up to Tower (over Tailscale)
+---
 
-Single-shot rsync with checksum (size+time is meaningless for a fresh file,
-and we want the copy proven):
+## Phase 2 — Tower copy of the image (Aurora)
+
+### 2.1 rsync with checksum proof
 
 ```bash
 rsync -av --checksum --progress \
@@ -52,25 +52,69 @@ rsync -av --checksum --progress \
   bryan@tower:/mnt/user/backups/hangman-p2v/
 ```
 
-- Adjust the Tower destination path to wherever bulk backups live there.
-- `--checksum` forces a full read of both sides at the end — slow but it
-  proves the copy. Run it once; later refreshes can drop it.
-- If the tailnet name differs, use `tailscale status` to find Tower's name.
+Adjust the Tower path to the real bulk-backup share. `--checksum` proves
+the copy byte-for-byte; drop it on later refreshes.
 
-Verify on Tower:
+### 2.2 Hash both sides
 
 ```bash
 ssh bryan@tower 'sha256sum /mnt/user/backups/hangman-p2v/win10.qcow2'
 sha256sum /path/to/sdc/win10.qcow2
 ```
 
-Hashes must match.
+Must match. Tower share needs ~150G free and should not be a
+snapraid/parity array member that churns on a one-off huge file.
 
-## 4. After hangman is installed
+---
 
-1. Boot win10.qcow2 in virt-manager: new VM, "Import existing disk",
-   select the qcow2, firmware **UEFI/OVMF**, chipset Q35.
-2. Expect Windows first-boot driver churn (virtio disk + passed-through
-   1650) and possibly a license reactivation prompt — known P2V cost.
-3. Only after the VM has run well for a couple of weeks: consider wiping
-   sdb for storage. Until then it stays as the cold original.
+## Phase 3 — File History, Windows → Tower (from Windows)
+
+Built-in, versioned, file-level backup of the user profile. Complements
+the qcow2 (which protects the whole machine, but only as of today).
+
+### 3.1 Tower side — SMB share
+
+Unraid: create share (e.g. `win10-filehistory`), enable SMB export,
+user `bryan` with write access. Verify from Windows:
+`\\tower\win10-filehistory` reachable over the tailnet.
+
+### 3.2 Windows side — enable File History
+
+Control Panel → System and Security → **File History**:
+1. Select drive → **Add a network location** → `\\tower\win10-filehistory`
+2. Turn on.
+3. Exclude folders: `AppData\Local`, `AppData\LocalLow` if coverage gets
+   noisy — caches are regenerable. `AppData\Roaming` stays (real app state).
+4. Advanced settings: save copies hourly (default), keep versions
+   "until space is needed" or a set retention (e.g. 6 months).
+
+First run duration depends on profile size; it runs in the background.
+
+### 3.3 Notes
+
+- File History covers libraries/profile folders (Documents, Desktop,
+  Pictures, AppData\Roaming). Anything outside `C:\Users\bryan`
+  (e.g. game saves under `ProgramData`) must be added manually or
+  accepted as uncovered.
+- Works identically once Windows is a VM on hangman (bridged network
+  reaches Tower the same way).
+- Deprecated-ish but present and functional in Win10 LTSC.
+
+---
+
+## Phase 4 — after hangman is installed (later, separate session)
+
+1. Boot win10.qcow2 in virt-manager: Import existing disk, firmware
+   **UEFI/OVMF**, chipset Q35.
+2. Expect first-boot driver churn (virtio + passed-through 1650) and
+   possibly a license reactivation prompt — known P2V cost.
+3. Re-point File History at the same Tower share from inside the VM.
+4. Only after the VM has run well for a couple of weeks: consider
+   wiping sdb for storage. Until then it stays as the cold original.
+
+## LTSC note
+
+Windows 10 LTSC: no feature-update churn, long support window. The qcow2
+is a stable artifact worth keeping; File History covers the user data
+that changes. wbadmin system image is intentionally skipped — redundant
+with the qcow2.
