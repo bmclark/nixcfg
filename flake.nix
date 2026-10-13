@@ -163,6 +163,25 @@
           }
         ];
       };
+
+      optiplexSystem = nixpkgs.lib.nixosSystem {
+        specialArgs = {inherit inputs outputs theme themeName;};
+        modules = [
+          ./hosts/optiplex
+          agenix.nixosModules.default
+          home-manager.nixosModules.home-manager
+          {nixpkgs.overlays = sharedOverlays;}
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              backupFileExtension = "hm-backup";
+              extraSpecialArgs = {inherit inputs outputs theme themeName nix-vscode-extensions;};
+              users.bclark = import ./home/bclark/optiplex.nix;
+            };
+          }
+        ];
+      };
     in {
       maverick = maverickSystem;
       # Temporary compatibility aliases for the old hostname and factory
@@ -170,6 +189,9 @@
       # as `maverick`.
       carbon = maverickSystem;
       nixos = maverickSystem;
+
+      # DRAFT: optiplex host — see ADR-015. Not yet installed on hardware.
+      optiplex = optiplexSystem;
     };
 
     darwinConfigurations = let
