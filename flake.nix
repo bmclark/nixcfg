@@ -18,6 +18,10 @@
   '';
 
   inputs = {
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -47,6 +51,7 @@
   outputs = {
     self,
     agenix,
+    disko,
     home-manager,
     mcp-nixos,
     nix-homebrew,
@@ -168,6 +173,7 @@
         specialArgs = {inherit inputs outputs theme themeName;};
         modules = [
           ./hosts/hangman
+          disko.nixosModules.disko
           agenix.nixosModules.default
           home-manager.nixosModules.home-manager
           {nixpkgs.overlays = sharedOverlays;}

@@ -3,6 +3,7 @@
 {...}: {
   imports = [
     ./configuration.nix
+    ./disko.nix
     # ./hardware-configuration.nix  # uncomment after nixos-generate-config
     ../common/default.nix
   ];
