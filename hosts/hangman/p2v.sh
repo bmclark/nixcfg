@@ -13,7 +13,7 @@
 set -euo pipefail
 
 SDC_MNT="${SDC_MNT:?Set SDC_MNT to the sdc mountpoint, e.g. /run/media/bryan/<uuid>}"
-TOWER="${TOWER:-bryan@tower}"
+TOWER="${TOWER:-root@tower}"
 TOWER_PATH="${TOWER_PATH:-/mnt/user/Bryan/win-10-backup}"
 SRC_DISK="${SRC_DISK:-/dev/sdb}"
 IMAGE="$SDC_MNT/win10.qcow2"
