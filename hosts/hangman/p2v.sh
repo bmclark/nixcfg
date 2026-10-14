@@ -32,7 +32,21 @@ convert() {
 check() {
   step "Verifying $IMAGE"
   qemu-img check "$IMAGE"
+  local rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "qemu-img check FAILED (exit $rc)."
+    echo "Known quirk for block-device converts: try 'bash p2v.sh repair' (qemu-img check -r all), then re-check."
+    echo "Do NOT run the tower step until check passes."
+    return "$rc"
+  fi
   qemu-img info "$IMAGE"
+}
+
+repair() {
+  step "Repairing $IMAGE (offline, safe on this copy)"
+  qemu-img check -r all "$IMAGE"
+  step "Re-checking after repair"
+  check
 }
 
 tower() {
@@ -55,10 +69,11 @@ tower() {
 case "${1:-}" in
   convert) convert ;;
   check) check ;;
+  repair) repair ;;
   tower) tower ;;
   all) convert && check && tower ;;
   *)
-    echo "usage: bash p2v.sh {convert|check|tower|all}"
+    echo "usage: bash p2v.sh {convert|check|repair|tower|all}"
     echo "env: SDC_MNT (required), TOWER, TOWER_PATH, SRC_DISK (optional)"
     exit 1
     ;;
