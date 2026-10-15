@@ -104,15 +104,21 @@ can be re-created with `virsh define`.
    IOMMU active; group 1 contains only the root port (00:01.0, a bridge),
    the 1650 (01:00.0), and its audio (01:00.1). No ACS override needed.
    **Passthrough design is a GO.**
-2. Image the Windows 10 disk (`/dev/sdb`, PNY 250GB, self-contained GPT
-   layout) as a qcow2 (`qemu-img convert -O qcow2 /dev/sdb .../win10.qcow2`)
-   — this file is both the safety net and the VM disk. Copy to Tower over
-   the tailnet with checksum verification. Full runbook:
-   `docs/runbook-hangman-p2v.md`. Disk plan: sda → NixOS, sdb stays
-   untouched as cold original until the VM is proven, sdc → image target /
-   bulk storage.
+2. ~~Image the Windows 10 disk~~ — DONE (2026-10-13): sdc (500G HDD) failed
+   mid-operation (unrecoverable read errors, exhausted reallocation; disk
+   retired from service). Windows disk imaged instead as a raw image
+   streamed directly sdb → Tower:
+   `dd if=/dev/sdb bs=4M conv=noerror,sync | ssh root@tower 'cat > .../win10.raw'`
+   Verified: sha256 of `head -c 250059350016` of the raw file matches sdb
+   exactly (3695e10f...). Note the raw file is one partial-block larger
+   than the disk due to `conv=sync` tail padding — always hash with
+   `head -c 250059350016`. sdc contents (61.88G, one regenerable Bottles
+   DLL lost) rescued to Tower `Bryan/sdc-rescue/`; Aurora home mirrored to
+   `Bryan/aurora-home/`. The qcow2 made on sdc is discarded — superseded
+   by the verified raw image. Convert raw → qcow2 on Tower or hangman when
+   building the VM.
 3. Fresh NixOS install on the Optiplex from this flake (`hosts/hangman`):
    disko wipe of sda, `nixos-install --flake .#hangman`.
-4. VFIO + libvirt + Windows guest, iterate.
+4. VFIO + libvirt + Windows guest (from the verified raw image), iterate.
 5. Post-install: add `hangman` A record to the `tail.bclark.net` CoreDNS
    zone (standing tailnet convention — same change as node enrollment).
