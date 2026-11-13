@@ -20,7 +20,6 @@
     enable = true;
     theme = "bgrt";
   };
-  boot.initrd.systemd.enable = true; # Required for smooth plymouth transitions
 
   networking.hostName = "maverick"; # Define your hostname.
   # networking.wireless.enable = true; # Enables wireless support via wpa_supplicant.
