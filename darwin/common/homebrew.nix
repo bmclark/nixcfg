@@ -33,6 +33,7 @@
       "raycast" # Launcher / productivity tool
       "spotify" # Music streaming
       "tailscale-app" # VPN mesh network (menu bar app)
+      "telegram" # Telegram messenger (nixpkgs telegram-desktop lacks aarch64-darwin cache; would build from source)
     ];
 
     masApps = {

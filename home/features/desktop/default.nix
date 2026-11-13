@@ -61,6 +61,7 @@ in {
         # `nix flake update`.
         # bitwarden-desktop
         spotify
+        telegram-desktop
       ];
     })
     (mkIf (cfg.enable && pkgs.stdenv.isLinux) {
